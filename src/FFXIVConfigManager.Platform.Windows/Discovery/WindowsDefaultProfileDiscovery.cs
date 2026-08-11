@@ -22,7 +22,8 @@ public sealed class WindowsDefaultProfileDiscovery : IProfileDiscovery
                 InternationalProfileId,
                 "国际服",
                 GameRegion.International,
-                configRoot),
+                configRoot,
+                GameProfileOrigin.Automatic),
         ];
 
         return Task.FromResult(profiles);

@@ -7,9 +7,20 @@ public enum GameRegion
     Custom,
 }
 
+public enum GameProfileOrigin
+{
+    Automatic,
+    User,
+}
+
 public sealed record GameProfile
 {
-    public GameProfile(Guid id, string name, GameRegion region, string configRoot)
+    public GameProfile(
+        Guid id,
+        string name,
+        GameRegion region,
+        string configRoot,
+        GameProfileOrigin origin = GameProfileOrigin.User)
     {
         if (id == Guid.Empty)
         {
@@ -30,6 +41,7 @@ public sealed record GameProfile
         Name = name.Trim();
         Region = region;
         ConfigRoot = configRoot;
+        Origin = origin;
     }
 
     public Guid Id { get; }
@@ -39,4 +51,6 @@ public sealed record GameProfile
     public GameRegion Region { get; }
 
     public string ConfigRoot { get; }
+
+    public GameProfileOrigin Origin { get; }
 }

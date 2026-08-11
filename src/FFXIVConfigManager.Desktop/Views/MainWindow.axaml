@@ -3,10 +3,10 @@
         xmlns:vm="using:FFXIVConfigManager.Desktop.ViewModels"
         x:Class="FFXIVConfigManager.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Width="1080"
-        Height="720"
-        MinWidth="820"
-        MinHeight="560"
+        Width="1180"
+        Height="780"
+        MinWidth="920"
+        MinHeight="620"
         Icon="/Assets/avalonia-logo.ico"
         Title="FFXIV 角色配置管理器">
 
@@ -55,25 +55,67 @@
                     </Grid>
                 </Border>
 
-                <Grid Margin="18,0" ColumnDefinitions="2*,110,160,170">
-                    <TextBlock FontWeight="SemiBold" Text="角色配置目录" />
-                    <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="配置源" />
-                    <TextBlock Grid.Column="2" FontWeight="SemiBold" Text="完整度" />
-                    <TextBlock Grid.Column="3" FontWeight="SemiBold" Text="最后修改" />
+                <Border Classes="card">
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="section-title" Text="配置源" />
+                        <ItemsControl ItemsSource="{Binding Profiles}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ProfileRowViewModel">
+                                    <Grid Margin="0,4" ColumnDefinitions="120,80,*,Auto">
+                                        <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Name}" />
+                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Opacity="0.7" Text="{Binding Region}" />
+                                        <TextBlock Grid.Column="2" Margin="8,0" VerticalAlignment="Center" Opacity="0.65"
+                                                   Text="{Binding ConfigRoot}" TextTrimming="CharacterEllipsis" />
+                                        <Button Grid.Column="3" Command="{Binding RemoveCommand}" Content="移除"
+                                                IsVisible="{Binding CanRemove}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Grid ColumnDefinitions="180,140,*,Auto" ColumnSpacing="10">
+                            <TextBox PlaceholderText="配置源名称" Text="{Binding NewProfileName}" />
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding RegionOptions}"
+                                      SelectedItem="{Binding SelectedRegion}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:GameRegionOption">
+                                        <TextBlock Text="{Binding DisplayName}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Opacity="0.6"
+                                       Text="选择包含 FFXIV_CHR… 文件夹的配置根目录" />
+                            <Button Grid.Column="3" Command="{Binding AddProfileCommand}" Content="选择目录并添加" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Classes="section-title" Margin="0,8,0,0" Text="角色" />
+                <Grid Margin="18,0" ColumnDefinitions="200,2*,110,160,170">
+                    <TextBlock FontWeight="SemiBold" Text="角色别名" />
+                    <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="角色配置目录" />
+                    <TextBlock Grid.Column="2" FontWeight="SemiBold" Text="配置源" />
+                    <TextBlock Grid.Column="3" FontWeight="SemiBold" Text="完整度" />
+                    <TextBlock Grid.Column="4" FontWeight="SemiBold" Text="最后修改" />
                 </Grid>
 
                 <ItemsControl ItemsSource="{Binding Characters}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:CharacterRowViewModel">
-                            <Border Classes="card" Margin="0,0,0,10" Padding="18,14">
-                                <Grid ColumnDefinitions="2*,110,160,170" VerticalAlignment="Center">
-                                    <TextBlock FontFamily="Cascadia Mono,Consolas" Text="{Binding FolderName}" />
-                                    <TextBlock Grid.Column="1" Text="{Binding ProfileName}" />
-                                    <StackPanel Grid.Column="2" Spacing="5">
+                            <Border Classes="card" Margin="0,0,0,10" Padding="18,12">
+                                <Grid ColumnDefinitions="200,2*,110,160,170" VerticalAlignment="Center">
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,12,0">
+                                        <TextBox Text="{Binding Alias}" PlaceholderText="未标记" />
+                                        <Button Grid.Column="1" Margin="6,0,0,0" Padding="10,5"
+                                                Command="{Binding SaveAliasCommand}" Content="保存" />
+                                    </Grid>
+                                    <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                                               FontFamily="Cascadia Mono,Consolas" Text="{Binding FolderName}" />
+                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="{Binding ProfileName}" />
+                                    <StackPanel Grid.Column="3" Spacing="5" VerticalAlignment="Center">
                                         <TextBlock FontSize="12" Opacity="0.75" Text="{Binding FileSummary}" />
                                         <ProgressBar Height="5" Minimum="0" Maximum="100" Value="{Binding Completeness}" />
                                     </StackPanel>
-                                    <TextBlock Grid.Column="3" Text="{Binding LastModified}" />
+                                    <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="{Binding LastModified}" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -84,7 +126,7 @@
 
         <Border Grid.Row="2" Padding="28,12" BorderBrush="#40808080" BorderThickness="0,1,0,0">
             <TextBlock FontSize="12" Opacity="0.65"
-                       Text="当前版本仅扫描已知配置文件，不读取聊天日志或解析 DAT 内容。" />
+                       Text="当前版本只读取配置元数据，不读取聊天日志或解析 DAT 内容。移除配置源不会删除磁盘文件。" />
         </Border>
     </Grid>
 </Window>
