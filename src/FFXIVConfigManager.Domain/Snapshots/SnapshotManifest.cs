@@ -5,6 +5,7 @@ public enum SnapshotReason
     Manual,
     BeforeMigration,
     BeforeRestore,
+    MigrationSource,
 }
 
 public sealed record SnapshotFileEntry(
@@ -52,7 +53,7 @@ public sealed record SnapshotManifest(
             throw new InvalidDataException("快照不包含任何配置文件。");
         }
 
-        var paths = new HashSet<string>(StringComparer.Ordinal);
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var file in Files)
         {
             if (file is null)

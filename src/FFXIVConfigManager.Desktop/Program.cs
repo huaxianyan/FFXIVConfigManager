@@ -1,20 +1,41 @@
-﻿using Avalonia;
-using System;
+using Avalonia;
+using FFXIVConfigManager.Infrastructure.Logging;
+using FFXIVConfigManager.Infrastructure.Settings;
 
 namespace FFXIVConfigManager.Desktop;
 
-sealed class Program
+internal static class Program
 {
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-    // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        var logger = new FileDiagnosticLogger(
+            Path.Combine(ApplicationDataPaths.GetDefaultDirectory(), "logs"));
+        logger.Initialize();
 
-    // Avalonia configuration, don't remove; also used by visual designer.
-    public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
+        try
+        {
+            using var instanceMutex = new Mutex(
+                initiallyOwned: true,
+                "FFXIVConfigManager.SingleInstance",
+                out var isFirstInstance);
+            if (!isFirstInstance)
+            {
+                logger.Write("INFO", "A second application instance was rejected.");
+                return;
+            }
+
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        catch (Exception exception)
+        {
+            logger.Write("FATAL", exception.ToString());
+            throw;
+        }
+    }
+
+    public static AppBuilder BuildAvaloniaApp() =>
+        AppBuilder.Configure<App>()
             .UsePlatformDetect()
 #if DEBUG
             .WithDeveloperTools()

@@ -6,7 +6,9 @@ using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
 using FFXIVConfigManager.Desktop.Services;
 using FFXIVConfigManager.Domain.Characters;
+using FFXIVConfigManager.Domain.Files;
 using FFXIVConfigManager.Domain.Profiles;
+using FFXIVConfigManager.Domain.Snapshots;
 
 namespace FFXIVConfigManager.Desktop.ViewModels;
 
@@ -16,10 +18,21 @@ public partial class MainViewModel(
     CreateCharacterSnapshotUseCase createSnapshot,
     ScanSnapshotLibraryUseCase scanSnapshotLibrary,
     PreviewSnapshotUseCase previewSnapshot,
+    RestoreSnapshotUseCase restoreSnapshot,
+    PreviewCharacterMigrationUseCase previewMigration,
+    MigrateCharacterConfigurationUseCase migrateCharacter,
+    IIncompleteRestoreRecovery incompleteRestoreRecovery,
     IFolderPickerService folderPicker) : ViewModelBase
 {
     private readonly List<SnapshotRowViewModel> _allSnapshots = [];
+    private readonly Dictionary<Guid, GameProfile> _currentProfiles = [];
     private readonly Dictionary<(Guid ProfileId, string Folder), CharacterConfiguration> _currentCharacters = [];
+    private SnapshotLibraryEntry? _previewedSnapshot;
+    private GameProfile? _previewedTargetProfile;
+    private CharacterConfiguration? _previewedTarget;
+    private CharacterRowViewModel? _previewedMigrationSource;
+    private CharacterRowViewModel? _previewedMigrationTarget;
+    private ConfigScope _previewedMigrationScopes;
 
     public ObservableCollection<CharacterRowViewModel> Characters { get; } = [];
 
@@ -28,6 +41,18 @@ public partial class MainViewModel(
     public ObservableCollection<SnapshotRowViewModel> Snapshots { get; } = [];
 
     public ObservableCollection<SnapshotFilePreviewViewModel> SnapshotPreviewFiles { get; } = [];
+
+    public ObservableCollection<SnapshotFilePreviewViewModel> MigrationPreviewFiles { get; } = [];
+
+    public IReadOnlyList<MigrationScopeOptionViewModel> MigrationScopes { get; } =
+    [
+        new(ConfigScope.Hud, "HUD 与界面"),
+        new(ConfigScope.Character, "角色设置"),
+        new(ConfigScope.Controls, "操作与键位"),
+        new(ConfigScope.Hotbars, "热键栏"),
+        new(ConfigScope.Macros, "角色宏"),
+        new(ConfigScope.Gearsets, "套装列表"),
+    ];
 
     public IReadOnlyList<GameRegionOption> RegionOptions { get; } =
     [
@@ -40,6 +65,9 @@ public partial class MainViewModel(
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     [NotifyCanExecuteChangedFor(nameof(AddProfileCommand))]
     [NotifyCanExecuteChangedFor(nameof(SelectSnapshotLibraryCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ConfirmRestoreCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PreviewMigrationCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ConfirmMigrationCommand))]
     public partial bool IsBusy { get; private set; }
 
     [ObservableProperty]
@@ -64,7 +92,26 @@ public partial class MainViewModel(
     public partial string SnapshotPreviewTitle { get; private set; } = "选择有效快照以预览差异";
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ConfirmRestoreCommand))]
+    public partial bool CanRestorePreview { get; private set; }
+
+    [ObservableProperty]
     public partial string SnapshotFilter { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PreviewMigrationCommand))]
+    public partial CharacterRowViewModel? SelectedMigrationSource { get; set; }
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PreviewMigrationCommand))]
+    public partial CharacterRowViewModel? SelectedMigrationTarget { get; set; }
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ConfirmMigrationCommand))]
+    public partial bool CanConfirmMigration { get; private set; }
+
+    [ObservableProperty]
+    public partial string MigrationPreviewTitle { get; private set; } = "选择源角色和目标角色后生成迁移预览";
 
     [ObservableProperty]
     public partial string NewProfileName { get; set; } = "国服";
@@ -87,9 +134,21 @@ public partial class MainViewModel(
                 .GroupBy(item => (item.ProfileId, item.CharacterFolder))
                 .ToDictionary(group => group.Key, group => group.Last().Alias);
             var results = await scanProfiles.ExecuteAsync(cancellationToken);
+            var recoveryResults = await incompleteRestoreRecovery.RecoverAsync(
+                results.SelectMany(result => result.Characters)
+                    .Select(character => character.FullPath),
+                cancellationToken);
+            if (recoveryResults.Any(result => result.Recovered))
+            {
+                results = await scanProfiles.ExecuteAsync(cancellationToken);
+            }
 
             Characters.Clear();
             Profiles.Clear();
+            SelectedMigrationSource = null;
+            SelectedMigrationTarget = null;
+            ClearMigrationPreview();
+            _currentProfiles.Clear();
             _currentCharacters.Clear();
 
             if (results.Count == 0)
@@ -108,6 +167,7 @@ public partial class MainViewModel(
 
             foreach (var result in results)
             {
+                _currentProfiles[result.Profile.Id] = result.Profile;
                 Profiles.Add(ProfileRowViewModel.From(
                     result.Profile,
                     RemoveProfileAsync));
@@ -132,11 +192,19 @@ public partial class MainViewModel(
                 .Where(result => result.Issue is not null)
                 .Select(result => $"{result.Profile.Name}：{result.Issue}")
                 .ToArray();
-            StatusMessage = issues.Length > 0
-                ? string.Join("　", issues)
-                : Characters.Count == 0
-                    ? "未发现角色配置目录。登录过角色后可在这里看到配置。"
-                    : $"扫描完成于 {DateTimeOffset.Now:HH:mm:ss}";
+            var failedRecoveries = recoveryResults
+                .Where(result => !result.Recovered)
+                .SelectMany(result => result.Errors)
+                .ToArray();
+            StatusMessage = failedRecoveries.Length > 0
+                ? $"检测到无法自动回滚的中断事务：{string.Join("；", failedRecoveries)}"
+                : recoveryResults.Count > 0
+                    ? $"已自动回滚 {recoveryResults.Count} 个中断的恢复事务。"
+                    : issues.Length > 0
+                        ? string.Join("　", issues)
+                        : Characters.Count == 0
+                            ? "未发现角色配置目录。登录过角色后可在这里看到配置。"
+                            : $"扫描完成于 {DateTimeOffset.Now:HH:mm:ss}";
             await LoadSnapshotsAsync(settings, aliases, cancellationToken);
         }
         catch (OperationCanceledException)
@@ -314,6 +382,7 @@ public partial class MainViewModel(
         Snapshots.Clear();
         SnapshotPreviewFiles.Clear();
         SnapshotPreviewTitle = "选择有效快照以预览差异";
+        ClearRestoreSelection();
 
         if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
         {
@@ -357,11 +426,13 @@ public partial class MainViewModel(
         try
         {
             CharacterConfiguration? target = null;
+            GameProfile? targetProfile = null;
             if (snapshot.Manifest is not null)
             {
                 _currentCharacters.TryGetValue(
                     (snapshot.Manifest.Source.ProfileId, snapshot.Manifest.Source.CharacterFolder),
                     out target);
+                _currentProfiles.TryGetValue(snapshot.Manifest.Source.ProfileId, out targetProfile);
             }
 
             var preview = await previewSnapshot.ExecuteAsync(snapshot, target);
@@ -378,18 +449,236 @@ public partial class MainViewModel(
                 ? "未发现快照对应的本地角色；当前只展示快照内容"
                 : $"恢复预览：{changed} 个文件将发生变化，" +
                   $"{preview.Files.Count - changed} 个文件相同";
+            _previewedSnapshot = snapshot;
+            _previewedTarget = target;
+            _previewedTargetProfile = targetProfile;
+            CanRestorePreview = target is not null && targetProfile is not null;
             StatusMessage = "快照已重新校验，恢复预览已生成。";
         }
         catch (Exception exception)
         {
             SnapshotPreviewFiles.Clear();
             SnapshotPreviewTitle = "无法生成预览";
+            ClearRestoreSelection();
             StatusMessage = $"快照预览失败：{exception.Message}";
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanConfirmRestore))]
+    private async Task ConfirmRestoreAsync(CancellationToken cancellationToken)
+    {
+        if (_previewedSnapshot is null ||
+            _previewedTarget is null ||
+            _previewedTargetProfile is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        string? completionMessage = null;
+        try
+        {
+            var settings = await settingsService.GetAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
+            {
+                throw new InvalidOperationException("尚未设置快照库，无法创建恢复点。");
+            }
+
+            StatusMessage = "正在创建操作前恢复点并执行事务式恢复……";
+            var result = await restoreSnapshot.ExecuteAsync(
+                _previewedSnapshot,
+                _previewedTargetProfile,
+                _previewedTarget,
+                settings.SnapshotLibraryPath,
+                cancellationToken);
+            completionMessage =
+                $"成功恢复 {result.RestoreResult.RestoredFileCount} 个文件；" +
+                $"恢复点：{Path.GetFileName(result.RecoveryPoint.ArchivePath)}";
+            StatusMessage = completionMessage;
+            ClearRestoreSelection();
+        }
+        catch (SnapshotRestoreException exception)
+        {
+            StatusMessage = exception.RollbackCompleted
+                ? exception.Message
+                : $"严重错误：{exception.Message}。请使用操作前恢复点手动恢复。";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "恢复已取消；已提交的文件已回滚。";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"恢复失败：{exception.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        if (completionMessage is not null)
+        {
+            await RefreshAsync(cancellationToken);
+            StatusMessage = completionMessage;
+        }
+    }
+
+    private bool CanConfirmRestore() => CanRestorePreview && !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanPreviewMigration))]
+    private async Task PreviewMigrationAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedMigrationSource is null || SelectedMigrationTarget is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var scopes = GetSelectedMigrationScopes();
+            var preview = await previewMigration.ExecuteAsync(
+                SelectedMigrationSource.Character,
+                SelectedMigrationTarget.Character,
+                scopes,
+                cancellationToken);
+            MigrationPreviewFiles.Clear();
+            foreach (var file in preview.Files)
+            {
+                MigrationPreviewFiles.Add(SnapshotFilePreviewViewModel.From(file));
+            }
+
+            var changed = preview.Files.Count(file =>
+                file.Difference != SnapshotFileDifference.Identical);
+            MigrationPreviewTitle =
+                $"迁移预览：{changed} 个文件将变化，" +
+                $"{preview.Files.Count - changed} 个文件相同";
+            _previewedMigrationSource = SelectedMigrationSource;
+            _previewedMigrationTarget = SelectedMigrationTarget;
+            _previewedMigrationScopes = scopes;
+            CanConfirmMigration = true;
+            StatusMessage = "迁移预览已生成；确认前不会写入目标角色。";
+        }
+        catch (Exception exception)
+        {
+            ClearMigrationPreview();
+            MigrationPreviewTitle = "无法生成迁移预览";
+            StatusMessage = $"迁移预览失败：{exception.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunMigration))]
+    private async Task ConfirmMigrationAsync(CancellationToken cancellationToken)
+    {
+        if (_previewedMigrationSource is null || _previewedMigrationTarget is null)
+        {
+            return;
+        }
+
+        var currentScopes = GetSelectedMigrationScopes();
+        if (currentScopes != _previewedMigrationScopes ||
+            SelectedMigrationSource != _previewedMigrationSource ||
+            SelectedMigrationTarget != _previewedMigrationTarget)
+        {
+            ClearMigrationPreview();
+            StatusMessage = "迁移选择已变化，请重新生成预览。";
+            return;
+        }
+
+        IsBusy = true;
+        string? completionMessage = null;
+        try
+        {
+            var settings = await settingsService.GetAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
+            {
+                throw new InvalidOperationException("请先设置快照库，以保存迁移源和目标恢复点。");
+            }
+
+            StatusMessage = "正在创建迁移源快照和目标恢复点……";
+            var result = await migrateCharacter.ExecuteAsync(
+                _previewedMigrationSource.Profile,
+                _previewedMigrationSource.Character,
+                _previewedMigrationTarget.Profile,
+                _previewedMigrationTarget.Character,
+                settings.SnapshotLibraryPath,
+                currentScopes,
+                cancellationToken);
+            completionMessage =
+                $"迁移完成：{result.RestoreResult.RestoredFileCount} 个文件；" +
+                $"目标恢复点：{Path.GetFileName(result.TargetRecoveryPoint.ArchivePath)}";
+            StatusMessage = completionMessage;
+            ClearMigrationPreview();
+        }
+        catch (SnapshotRestoreException exception)
+        {
+            StatusMessage = exception.RollbackCompleted
+                ? exception.Message
+                : $"严重错误：{exception.Message}";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "迁移已取消；若已开始写入，已提交文件已回滚。";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"迁移失败：{exception.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        if (completionMessage is not null)
+        {
+            await RefreshAsync(cancellationToken);
+            StatusMessage = completionMessage;
+        }
+    }
+
+    private bool CanPreviewMigration() =>
+        !IsBusy &&
+        SelectedMigrationSource is not null &&
+        SelectedMigrationTarget is not null &&
+        SelectedMigrationSource != SelectedMigrationTarget;
+
+    private bool CanRunMigration() => CanConfirmMigration && !IsBusy;
+
+    private ConfigScope GetSelectedMigrationScopes() =>
+        MigrationScopes
+            .Where(scope => scope.IsSelected)
+            .Aggregate(ConfigScope.None, (current, scope) => current | scope.Scope);
+
+    partial void OnSelectedMigrationSourceChanged(CharacterRowViewModel? value) =>
+        ClearMigrationPreview();
+
+    partial void OnSelectedMigrationTargetChanged(CharacterRowViewModel? value) =>
+        ClearMigrationPreview();
+
+    private void ClearMigrationPreview()
+    {
+        _previewedMigrationSource = null;
+        _previewedMigrationTarget = null;
+        _previewedMigrationScopes = ConfigScope.None;
+        CanConfirmMigration = false;
+        MigrationPreviewFiles.Clear();
+        MigrationPreviewTitle = "选择源角色和目标角色后生成迁移预览";
+    }
+
+    private void ClearRestoreSelection()
+    {
+        _previewedSnapshot = null;
+        _previewedTarget = null;
+        _previewedTargetProfile = null;
+        CanRestorePreview = false;
     }
 
     partial void OnSnapshotFilterChanged(string value) => ApplySnapshotFilter();
@@ -428,6 +717,18 @@ public partial class MainViewModel(
 }
 
 public sealed record GameRegionOption(GameRegion Region, string DisplayName);
+
+public sealed partial class MigrationScopeOptionViewModel(
+    ConfigScope scope,
+    string displayName) : ObservableObject
+{
+    public ConfigScope Scope { get; } = scope;
+
+    public string DisplayName { get; } = displayName;
+
+    [ObservableProperty]
+    public partial bool IsSelected { get; set; } = true;
+}
 
 public sealed partial class ProfileRowViewModel : ObservableObject
 {
@@ -497,6 +798,12 @@ public sealed partial class CharacterRowViewModel : ObservableObject
         Completeness = character.Completeness * 100;
     }
 
+    public GameProfile Profile => _profile;
+
+    public CharacterConfiguration Character => _character;
+
+    public string DisplayName => string.IsNullOrWhiteSpace(Alias) ? FolderName : Alias;
+
     public string ProfileName { get; }
 
     public string FolderName { get; }
@@ -508,6 +815,7 @@ public sealed partial class CharacterRowViewModel : ObservableObject
     public double Completeness { get; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayName))]
     public partial string Alias { get; set; }
 
     public static CharacterRowViewModel From(
@@ -552,6 +860,14 @@ public sealed partial class SnapshotRowViewModel : ObservableObject
         IntegrityText = entry.IntegrityStatus == SnapshotIntegrityStatus.Valid
             ? "有效"
             : "损坏";
+        TypeText = manifest?.Reason switch
+        {
+            SnapshotReason.BeforeMigration => "迁移前恢复点",
+            SnapshotReason.BeforeRestore => "恢复前恢复点",
+            SnapshotReason.MigrationSource => "迁移源",
+            SnapshotReason.Manual => "手动快照",
+            _ => "未知类型",
+        };
         ErrorSummary = entry.Errors.Count == 0
             ? string.Empty
             : string.Join("；", entry.Errors);
@@ -562,6 +878,7 @@ public sealed partial class SnapshotRowViewModel : ObservableObject
             CharacterFolder,
             ProfileName,
             IntegrityText,
+            TypeText,
             Path.GetFileName(entry.ArchivePath));
     }
 
@@ -576,6 +893,8 @@ public sealed partial class SnapshotRowViewModel : ObservableObject
     public string FileSummary { get; }
 
     public string IntegrityText { get; }
+
+    public string TypeText { get; }
 
     public string ErrorSummary { get; }
 

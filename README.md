@@ -38,10 +38,16 @@
 - 从快照及其 Manifest 重建历史索引，不依赖不可恢复的数据库；
 - 展示有效和损坏的快照，并支持按角色、配置源和状态筛选；
 - 在恢复前重新校验快照，并逐文件比较当前角色的稳定 SHA-256；
+- 恢复前自动创建目标恢复点，使用暂存、事务日志、逐文件替换和写后校验；
+- 写入失败或取消时自动回滚，启动时继续处理意外中断的恢复事务；
+- 支持在任意两个本地角色之间按安全配置范围预览和迁移；
+- 迁移时同时保存迁移源快照与目标操作前恢复点；
+- 不因检测到 FFXIV 或 XIVLauncher 正在运行而限制操作；
+- 单实例运行并保存本地诊断日志；
 - 在 Avalonia 桌面界面展示角色、配置完整度和最后修改时间；
-- 为 Domain、Application、设置存储、快照和物理目录扫描提供自动化测试。
+- 为 Domain、Application、设置存储、快照、恢复事务和迁移提供自动化测试。
 
-目前尚未实现迁移和恢复写入。
+项目已进入 Windows 手动验收阶段。Linux 和 macOS 尚未进行兼容性验证。
 
 ## 开发
 
@@ -52,6 +58,18 @@ dotnet restore
 dotnet build FFXIVConfigManager.sln
 dotnet test FFXIVConfigManager.sln
 dotnet run --project src/FFXIVConfigManager.Desktop
+```
+
+创建 Windows 便携包：
+
+```powershell
+./scripts/publish-windows.ps1
+```
+
+输出位于：
+
+```text
+artifacts/FFXIVConfigManager-win-x64.zip
 ```
 
 ## 旧版本

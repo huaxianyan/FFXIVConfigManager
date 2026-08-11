@@ -40,9 +40,19 @@ public partial class App : Avalonia.Application
                 TimeProvider.System);
             var snapshotLibraryReader = new PhysicalSnapshotLibraryReader(snapshotService);
             var scanSnapshotLibrary = new ScanSnapshotLibraryUseCase(snapshotLibraryReader);
+            var stableHashService = new StableFileHashService();
             var previewSnapshot = new PreviewSnapshotUseCase(
                 snapshotService,
-                new StableFileHashService());
+                stableHashService);
+            var transactionalRestorer = new TransactionalSnapshotRestorer();
+            var restoreSnapshot = new RestoreSnapshotUseCase(
+                snapshotService,
+                createSnapshot,
+                transactionalRestorer);
+            var previewMigration = new PreviewCharacterMigrationUseCase(stableHashService);
+            var migrateCharacter = new MigrateCharacterConfigurationUseCase(
+                createSnapshot,
+                transactionalRestorer);
 
             MainWindow? window = null;
             var folderPicker = new AvaloniaFolderPickerService(() => window);
@@ -52,6 +62,10 @@ public partial class App : Avalonia.Application
                 createSnapshot,
                 scanSnapshotLibrary,
                 previewSnapshot,
+                restoreSnapshot,
+                previewMigration,
+                migrateCharacter,
+                transactionalRestorer,
                 folderPicker);
             window = new MainWindow
             {

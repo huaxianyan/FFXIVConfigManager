@@ -7,7 +7,7 @@
         Height="780"
         MinWidth="920"
         MinHeight="620"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/app.ico"
         Title="FFXIV 角色配置管理器">
 
     <Window.Styles>
@@ -96,6 +96,71 @@
                     </StackPanel>
                 </Border>
 
+                <Border Classes="card">
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="section-title" Text="角色配置迁移" />
+                        <Grid ColumnDefinitions="*,50,*" ColumnSpacing="10">
+                            <ComboBox ItemsSource="{Binding Characters}"
+                                      SelectedItem="{Binding SelectedMigrationSource}"
+                                      PlaceholderText="选择源角色">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:CharacterRowViewModel">
+                                        <TextBlock Text="{Binding DisplayName}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock Grid.Column="1" HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" FontSize="20" Text="→" />
+                            <ComboBox Grid.Column="2" ItemsSource="{Binding Characters}"
+                                      SelectedItem="{Binding SelectedMigrationTarget}"
+                                      PlaceholderText="选择目标角色">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:CharacterRowViewModel">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{Binding DisplayName}" />
+                                            <TextBlock Opacity="0.55" Text="{Binding ProfileName}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding MigrationScopes}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MigrationScopeOptionViewModel">
+                                    <CheckBox Margin="0,0,18,6" IsChecked="{Binding IsSelected}"
+                                              Content="{Binding DisplayName}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                            <TextBlock VerticalAlignment="Center" Text="{Binding MigrationPreviewTitle}" />
+                            <Button Grid.Column="1" Command="{Binding PreviewMigrationCommand}"
+                                    Content="生成迁移预览" />
+                            <Button Grid.Column="2" Command="{Binding ConfirmMigrationCommand}"
+                                    IsEnabled="{Binding CanConfirmMigration}"
+                                    Content="确认迁移" />
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding MigrationPreviewFiles}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SnapshotFilePreviewViewModel">
+                                    <Grid Margin="0,3" ColumnDefinitions="180,120,*">
+                                        <TextBlock FontFamily="Cascadia Mono,Consolas" Text="{Binding FileName}" />
+                                        <TextBlock Grid.Column="1" Opacity="0.65" Text="{Binding SnapshotSize}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding DifferenceText}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock FontSize="12" Opacity="0.6" TextWrapping="Wrap"
+                                   Text="迁移会保存源配置快照和目标操作前恢复点，再使用同一事务引擎写入目标。默认不迁移隐私、缓存、物品排序和未明确验证的混合状态。" />
+                    </StackPanel>
+                </Border>
+
                 <TextBlock Classes="section-title" Margin="0,8,0,0" Text="角色" />
                 <Grid Margin="18,0" ColumnDefinitions="200,2*,110,160,170,100">
                     <TextBlock FontWeight="SemiBold" Text="角色别名" />
@@ -156,7 +221,10 @@
                                                Text="{Binding FileSummary}" />
                                     <TextBlock Grid.Column="2" Text="{Binding ProfileName}" />
                                     <TextBlock Grid.Column="3" Text="{Binding CreatedAt}" />
-                                    <TextBlock Grid.Column="4" FontWeight="SemiBold" Text="{Binding IntegrityText}" />
+                                    <StackPanel Grid.Column="4" Spacing="2">
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding IntegrityText}" />
+                                        <TextBlock FontSize="11" Opacity="0.6" Text="{Binding TypeText}" />
+                                    </StackPanel>
                                     <Button Grid.Column="5" Command="{Binding PreviewCommand}" Content="预览" />
                                 </Grid>
                             </Border>
@@ -166,7 +234,14 @@
 
                 <Border Classes="card" Margin="0,0,0,12">
                     <StackPanel Spacing="12">
-                        <TextBlock Classes="section-title" Text="{Binding SnapshotPreviewTitle}" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Classes="section-title" Text="{Binding SnapshotPreviewTitle}" />
+                            <Button Grid.Column="1" Command="{Binding ConfirmRestoreCommand}"
+                                    IsEnabled="{Binding CanRestorePreview}"
+                                    Content="确认恢复到原角色" />
+                        </Grid>
+                        <TextBlock Opacity="0.65" TextWrapping="Wrap"
+                                   Text="恢复前会自动创建目标角色恢复点。恢复采用暂存、逐文件校验、事务日志和失败回滚；不会因为 FFXIV 正在运行而禁止操作。" />
                         <ItemsControl ItemsSource="{Binding SnapshotPreviewFiles}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:SnapshotFilePreviewViewModel">

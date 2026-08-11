@@ -1,4 +1,5 @@
 using FFXIVConfigManager.Domain.Characters;
+using FFXIVConfigManager.Domain.Files;
 using FFXIVConfigManager.Domain.Profiles;
 using FFXIVConfigManager.Domain.Snapshots;
 
@@ -13,7 +14,37 @@ public sealed class CreateCharacterSnapshotUseCase(
         CharacterConfiguration character,
         string libraryRoot,
         SnapshotReason reason = SnapshotReason.Manual,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        ExecuteSelectedAsync(
+            profile,
+            character,
+            libraryRoot,
+            reason,
+            definition => definition.IncludedInDefaultBackup,
+            cancellationToken);
+
+    public Task<CreatedSnapshot> ExecuteMigrationSourceAsync(
+        GameProfile profile,
+        CharacterConfiguration character,
+        string libraryRoot,
+        ConfigScope scopes,
+        CancellationToken cancellationToken = default) =>
+        ExecuteSelectedAsync(
+            profile,
+            character,
+            libraryRoot,
+            SnapshotReason.MigrationSource,
+            definition => definition.IncludedInSafeMigration &&
+                          scopes.HasFlag(definition.Scope),
+            cancellationToken);
+
+    private Task<CreatedSnapshot> ExecuteSelectedAsync(
+        GameProfile profile,
+        CharacterConfiguration character,
+        string libraryRoot,
+        SnapshotReason reason,
+        Func<ConfigFileDefinition, bool> include,
+        CancellationToken cancellationToken)
     {
         if (!character.BelongsTo(profile))
         {
@@ -26,7 +57,7 @@ public sealed class CreateCharacterSnapshotUseCase(
         }
 
         var files = character.Files
-            .Where(file => file.Definition.IncludedInDefaultBackup)
+            .Where(file => include(file.Definition))
             .Select(file => new SnapshotFileSource(
                 Path.Combine(character.FullPath, file.Definition.FileName),
                 $"files/{file.Definition.FileName}",
@@ -35,7 +66,7 @@ public sealed class CreateCharacterSnapshotUseCase(
 
         if (files.Length == 0)
         {
-            throw new InvalidOperationException("该角色没有可备份的已知配置文件。");
+            throw new InvalidOperationException("该角色没有符合所选范围的配置文件。");
         }
 
         var request = new SnapshotArchiveRequest(
