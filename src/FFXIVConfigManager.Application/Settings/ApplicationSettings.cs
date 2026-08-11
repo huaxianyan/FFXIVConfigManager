@@ -14,6 +14,8 @@ public sealed record ApplicationSettings(
 {
     public const int CurrentSchemaVersion = 1;
 
+    public string? SnapshotLibraryPath { get; init; }
+
     public static ApplicationSettings Empty { get; } =
         new(CurrentSchemaVersion, [], []);
 }

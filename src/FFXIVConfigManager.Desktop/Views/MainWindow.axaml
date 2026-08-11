@@ -86,23 +86,31 @@
                                        Text="选择包含 FFXIV_CHR… 文件夹的配置根目录" />
                             <Button Grid.Column="3" Command="{Binding AddProfileCommand}" Content="选择目录并添加" />
                         </Grid>
+                        <Grid ColumnDefinitions="140,*,Auto" ColumnSpacing="10">
+                            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="快照库" />
+                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Opacity="0.65"
+                                       Text="{Binding SnapshotLibraryPath}" TextTrimming="CharacterEllipsis" />
+                            <Button Grid.Column="2" Command="{Binding SelectSnapshotLibraryCommand}"
+                                    Content="更改快照库" />
+                        </Grid>
                     </StackPanel>
                 </Border>
 
                 <TextBlock Classes="section-title" Margin="0,8,0,0" Text="角色" />
-                <Grid Margin="18,0" ColumnDefinitions="200,2*,110,160,170">
+                <Grid Margin="18,0" ColumnDefinitions="200,2*,110,160,170,100">
                     <TextBlock FontWeight="SemiBold" Text="角色别名" />
                     <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="角色配置目录" />
                     <TextBlock Grid.Column="2" FontWeight="SemiBold" Text="配置源" />
                     <TextBlock Grid.Column="3" FontWeight="SemiBold" Text="完整度" />
                     <TextBlock Grid.Column="4" FontWeight="SemiBold" Text="最后修改" />
+                    <TextBlock Grid.Column="5" FontWeight="SemiBold" Text="操作" />
                 </Grid>
 
                 <ItemsControl ItemsSource="{Binding Characters}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:CharacterRowViewModel">
                             <Border Classes="card" Margin="0,0,0,10" Padding="18,12">
-                                <Grid ColumnDefinitions="200,2*,110,160,170" VerticalAlignment="Center">
+                                <Grid ColumnDefinitions="200,2*,110,160,170,100" VerticalAlignment="Center">
                                     <Grid ColumnDefinitions="*,Auto" Margin="0,0,12,0">
                                         <TextBox Text="{Binding Alias}" PlaceholderText="未标记" />
                                         <Button Grid.Column="1" Margin="6,0,0,0" Padding="10,5"
@@ -116,6 +124,8 @@
                                         <ProgressBar Height="5" Minimum="0" Maximum="100" Value="{Binding Completeness}" />
                                     </StackPanel>
                                     <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="{Binding LastModified}" />
+                                    <Button Grid.Column="5" Command="{Binding CreateSnapshotCommand}"
+                                            Content="创建快照" />
                                 </Grid>
                             </Border>
                         </DataTemplate>

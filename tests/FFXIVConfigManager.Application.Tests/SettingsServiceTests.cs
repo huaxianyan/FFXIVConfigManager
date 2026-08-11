@@ -29,6 +29,17 @@ public sealed class SettingsServiceTests
     }
 
     [Fact]
+    public async Task SetSnapshotLibraryPath_PersistsNormalizedPath()
+    {
+        var store = new MemorySettingsStore();
+        var service = new SettingsService(store);
+
+        await service.SetSnapshotLibraryPathAsync(".");
+
+        Assert.Equal(Path.GetFullPath("."), (await service.GetAsync()).SnapshotLibraryPath);
+    }
+
+    [Fact]
     public async Task SetCharacterAlias_BlankAliasRemovesExistingAlias()
     {
         var store = new MemorySettingsStore();

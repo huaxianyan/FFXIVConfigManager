@@ -5,7 +5,8 @@ namespace FFXIVConfigManager.Desktop.Services;
 
 public sealed class AvaloniaFolderPickerService(Func<Window?> ownerAccessor) : IFolderPickerService
 {
-    public async Task<string?> PickConfigRootAsync(
+    public async Task<string?> PickFolderAsync(
+        string title,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -18,7 +19,7 @@ public sealed class AvaloniaFolderPickerService(Func<Window?> ownerAccessor) : I
         var folders = await owner.StorageProvider.OpenFolderPickerAsync(
             new FolderPickerOpenOptions
             {
-                Title = "选择 FFXIV 配置根目录",
+                Title = title,
                 AllowMultiple = false,
             });
         cancellationToken.ThrowIfCancellationRequested();

@@ -33,6 +33,21 @@ public sealed class SettingsService(ISettingsStore settingsStore)
         return profile;
     }
 
+    public Task SetSnapshotLibraryPathAsync(
+        string libraryPath,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(libraryPath))
+        {
+            throw new ArgumentException("快照库目录不能为空。", nameof(libraryPath));
+        }
+
+        var normalizedPath = Path.GetFullPath(libraryPath);
+        return UpdateAsync(
+            settings => settings with { SnapshotLibraryPath = normalizedPath },
+            cancellationToken);
+    }
+
     public Task RemoveProfileAsync(
         Guid profileId,
         CancellationToken cancellationToken = default) =>

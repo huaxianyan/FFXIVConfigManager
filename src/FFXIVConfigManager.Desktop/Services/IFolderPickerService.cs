@@ -2,5 +2,7 @@ namespace FFXIVConfigManager.Desktop.Services;
 
 public interface IFolderPickerService
 {
-    Task<string?> PickConfigRootAsync(CancellationToken cancellationToken = default);
+    Task<string?> PickFolderAsync(
+        string title,
+        CancellationToken cancellationToken = default);
 }

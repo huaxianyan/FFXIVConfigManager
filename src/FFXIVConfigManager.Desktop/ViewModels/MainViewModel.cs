@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FFXIVConfigManager.Application.Discovery;
 using FFXIVConfigManager.Application.Settings;
+using FFXIVConfigManager.Application.Snapshots;
 using FFXIVConfigManager.Desktop.Services;
 using FFXIVConfigManager.Domain.Characters;
 using FFXIVConfigManager.Domain.Profiles;
@@ -12,6 +13,7 @@ namespace FFXIVConfigManager.Desktop.ViewModels;
 public partial class MainViewModel(
     ScanProfilesUseCase scanProfiles,
     SettingsService settingsService,
+    CreateCharacterSnapshotUseCase createSnapshot,
     IFolderPickerService folderPicker) : ViewModelBase
 {
     public ObservableCollection<CharacterRowViewModel> Characters { get; } = [];
@@ -28,6 +30,7 @@ public partial class MainViewModel(
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     [NotifyCanExecuteChangedFor(nameof(AddProfileCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SelectSnapshotLibraryCommand))]
     public partial bool IsBusy { get; private set; }
 
     [ObservableProperty]
@@ -41,6 +44,9 @@ public partial class MainViewModel(
 
     [ObservableProperty]
     public partial string Summary { get; private set; } = "0 个角色";
+
+    [ObservableProperty]
+    public partial string SnapshotLibraryPath { get; private set; } = "尚未设置快照库";
 
     [ObservableProperty]
     public partial string NewProfileName { get; set; } = "国服";
@@ -58,6 +64,7 @@ public partial class MainViewModel(
         try
         {
             var settings = await settingsService.GetAsync(cancellationToken);
+            SnapshotLibraryPath = settings.SnapshotLibraryPath ?? "尚未设置快照库";
             var aliases = settings.CharacterAliases.ToDictionary(
                 item => (item.ProfileId, item.CharacterFolder),
                 item => item.Alias);
@@ -94,7 +101,8 @@ public partial class MainViewModel(
                         result.Profile,
                         character,
                         alias,
-                        SaveAliasAsync));
+                        SaveAliasAsync,
+                        CreateSnapshotAsync));
                 }
             }
 
@@ -126,7 +134,9 @@ public partial class MainViewModel(
     [RelayCommand(CanExecute = nameof(CanRunCommand))]
     private async Task AddProfileAsync(CancellationToken cancellationToken)
     {
-        var selectedPath = await folderPicker.PickConfigRootAsync(cancellationToken);
+        var selectedPath = await folderPicker.PickFolderAsync(
+            "选择 FFXIV 配置根目录",
+            cancellationToken);
         if (string.IsNullOrWhiteSpace(selectedPath))
         {
             return;
@@ -170,6 +180,29 @@ public partial class MainViewModel(
         await RefreshAsync(cancellationToken);
     }
 
+    [RelayCommand(CanExecute = nameof(CanRunCommand))]
+    private async Task SelectSnapshotLibraryAsync(CancellationToken cancellationToken)
+    {
+        var selectedPath = await folderPicker.PickFolderAsync(
+            "选择快照库目录",
+            cancellationToken);
+        if (string.IsNullOrWhiteSpace(selectedPath))
+        {
+            return;
+        }
+
+        try
+        {
+            await settingsService.SetSnapshotLibraryPathAsync(selectedPath, cancellationToken);
+            SnapshotLibraryPath = Path.GetFullPath(selectedPath);
+            StatusMessage = "已更新快照库目录。";
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            StatusMessage = $"设置快照库失败：{exception.Message}";
+        }
+    }
+
     private async Task RemoveProfileAsync(Guid profileId)
     {
         IsBusy = true;
@@ -189,6 +222,49 @@ public partial class MainViewModel(
         }
 
         await RefreshAsync();
+    }
+
+    private async Task CreateSnapshotAsync(
+        GameProfile profile,
+        CharacterConfiguration character)
+    {
+        if (IsBusy)
+        {
+            StatusMessage = "已有操作正在进行，请稍候。";
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var settings = await settingsService.GetAsync();
+            var libraryPath = settings.SnapshotLibraryPath;
+            if (string.IsNullOrWhiteSpace(libraryPath))
+            {
+                libraryPath = await folderPicker.PickFolderAsync("选择快照库目录");
+                if (string.IsNullOrWhiteSpace(libraryPath))
+                {
+                    StatusMessage = "创建快照已取消：尚未设置快照库。";
+                    return;
+                }
+
+                await settingsService.SetSnapshotLibraryPathAsync(libraryPath);
+                SnapshotLibraryPath = Path.GetFullPath(libraryPath);
+            }
+
+            StatusMessage = $"正在为 {character.FolderName.Value} 创建稳定快照……";
+            var result = await createSnapshot.ExecuteAsync(profile, character, libraryPath);
+            StatusMessage =
+                $"快照创建并校验成功：{Path.GetFileName(result.ArchivePath)}";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"创建快照失败：{exception.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private async Task SaveAliasAsync(
@@ -256,17 +332,24 @@ public sealed partial class CharacterRowViewModel : ObservableObject
 {
     private readonly Guid _profileId;
     private readonly CharacterFolderName _characterFolder;
+    private readonly GameProfile _profile;
+    private readonly CharacterConfiguration _character;
     private readonly Func<Guid, CharacterFolderName, string, Task> _saveAlias;
+    private readonly Func<GameProfile, CharacterConfiguration, Task> _createSnapshot;
 
     private CharacterRowViewModel(
         GameProfile profile,
         CharacterConfiguration character,
         string? alias,
-        Func<Guid, CharacterFolderName, string, Task> saveAlias)
+        Func<Guid, CharacterFolderName, string, Task> saveAlias,
+        Func<GameProfile, CharacterConfiguration, Task> createSnapshot)
     {
         _profileId = profile.Id;
         _characterFolder = character.FolderName;
+        _profile = profile;
+        _character = character;
         _saveAlias = saveAlias;
+        _createSnapshot = createSnapshot;
         ProfileName = profile.Name;
         FolderName = character.FolderName.Value;
         Alias = alias ?? string.Empty;
@@ -292,9 +375,13 @@ public sealed partial class CharacterRowViewModel : ObservableObject
         GameProfile profile,
         CharacterConfiguration character,
         string? alias,
-        Func<Guid, CharacterFolderName, string, Task> saveAlias) =>
-        new(profile, character, alias, saveAlias);
+        Func<Guid, CharacterFolderName, string, Task> saveAlias,
+        Func<GameProfile, CharacterConfiguration, Task> createSnapshot) =>
+        new(profile, character, alias, saveAlias, createSnapshot);
 
     [RelayCommand]
     private Task SaveAliasAsync() => _saveAlias(_profileId, _characterFolder, Alias);
+
+    [RelayCommand]
+    private Task CreateSnapshotAsync() => _createSnapshot(_profile, _character);
 }

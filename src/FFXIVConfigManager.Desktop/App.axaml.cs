@@ -3,11 +3,13 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using FFXIVConfigManager.Application.Discovery;
 using FFXIVConfigManager.Application.Settings;
+using FFXIVConfigManager.Application.Snapshots;
 using FFXIVConfigManager.Desktop.Services;
 using FFXIVConfigManager.Desktop.ViewModels;
 using FFXIVConfigManager.Desktop.Views;
 using FFXIVConfigManager.Infrastructure.Discovery;
 using FFXIVConfigManager.Infrastructure.Settings;
+using FFXIVConfigManager.Infrastructure.Snapshots;
 using FFXIVConfigManager.Platform.Windows.Discovery;
 
 namespace FFXIVConfigManager.Desktop;
@@ -32,12 +34,17 @@ public partial class App : Avalonia.Application
                 settingsStore);
             var scanner = new PhysicalConfigRootScanner();
             var settingsService = new SettingsService(settingsStore);
+            var snapshotService = new ZipSnapshotArchiveService();
+            var createSnapshot = new CreateCharacterSnapshotUseCase(
+                snapshotService,
+                TimeProvider.System);
 
             MainWindow? window = null;
             var folderPicker = new AvaloniaFolderPickerService(() => window);
             var viewModel = new MainViewModel(
                 new ScanProfilesUseCase(configuredDiscovery, scanner),
                 settingsService,
+                createSnapshot,
                 folderPicker);
             window = new MainWindow
             {
