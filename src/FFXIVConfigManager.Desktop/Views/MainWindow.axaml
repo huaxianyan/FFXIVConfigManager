@@ -1,0 +1,90 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FFXIVConfigManager.Desktop.ViewModels"
+        x:Class="FFXIVConfigManager.Desktop.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Width="1080"
+        Height="720"
+        MinWidth="820"
+        MinHeight="560"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="FFXIV 角色配置管理器">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.page-title">
+            <Setter Property="FontSize" Value="28" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Border.card">
+            <Setter Property="Padding" Value="18" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#40808080" />
+            <Setter Property="Background" Value="#0A808080" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <Border Grid.Row="0" Padding="28,22" BorderBrush="#40808080" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="page-title" Text="角色配置" />
+                    <TextBlock Opacity="0.7" Text="发现、备份并迁移本地 FFXIV 角色配置" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <ProgressBar Width="100" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+                    <Button Command="{Binding RefreshCommand}" Content="重新扫描" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Margin="28" Spacing="18">
+                <Border Classes="card">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                        <TextBlock Classes="section-title" Text="{Binding ProfileName}" />
+                        <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{Binding Summary}" />
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="0,8,0,0" Opacity="0.65"
+                                   Text="{Binding ConfigRoot}" TextWrapping="Wrap" />
+                        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Margin="0,12,0,0"
+                                   Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+                    </Grid>
+                </Border>
+
+                <Grid Margin="18,0" ColumnDefinitions="2*,110,160,170">
+                    <TextBlock FontWeight="SemiBold" Text="角色配置目录" />
+                    <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="配置源" />
+                    <TextBlock Grid.Column="2" FontWeight="SemiBold" Text="完整度" />
+                    <TextBlock Grid.Column="3" FontWeight="SemiBold" Text="最后修改" />
+                </Grid>
+
+                <ItemsControl ItemsSource="{Binding Characters}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:CharacterRowViewModel">
+                            <Border Classes="card" Margin="0,0,0,10" Padding="18,14">
+                                <Grid ColumnDefinitions="2*,110,160,170" VerticalAlignment="Center">
+                                    <TextBlock FontFamily="Cascadia Mono,Consolas" Text="{Binding FolderName}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding ProfileName}" />
+                                    <StackPanel Grid.Column="2" Spacing="5">
+                                        <TextBlock FontSize="12" Opacity="0.75" Text="{Binding FileSummary}" />
+                                        <ProgressBar Height="5" Minimum="0" Maximum="100" Value="{Binding Completeness}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="3" Text="{Binding LastModified}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Padding="28,12" BorderBrush="#40808080" BorderThickness="0,1,0,0">
+            <TextBlock FontSize="12" Opacity="0.65"
+                       Text="当前版本仅扫描已知配置文件，不读取聊天日志或解析 DAT 内容。" />
+        </Border>
+    </Grid>
+</Window>
