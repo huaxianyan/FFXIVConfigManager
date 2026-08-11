@@ -59,6 +59,33 @@ public sealed class ZipSnapshotArchiveServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task LibraryReader_RebuildsIndexAndReportsCorruptedArchives()
+    {
+        var sourceDirectory = Path.Combine(_root, "source");
+        Directory.CreateDirectory(sourceDirectory);
+        var addonPath = Path.Combine(sourceDirectory, "ADDON.DAT");
+        await File.WriteAllTextAsync(addonPath, "valid");
+        var service = new ZipSnapshotArchiveService();
+        await service.CreateAsync(CreateRequest(
+            new SnapshotFileSource(addonPath, "files/ADDON.DAT", "ADDON.DAT")));
+        var corruptedPath = Path.Combine(
+            _root,
+            "library",
+            "snapshots",
+            "2026",
+            "08",
+            "corrupted.ffxivconfig.zip");
+        await File.WriteAllTextAsync(corruptedPath, "not-a-zip");
+        var reader = new PhysicalSnapshotLibraryReader(service);
+
+        var entries = await reader.ScanAsync(Path.Combine(_root, "library"));
+
+        Assert.Equal(2, entries.Count);
+        Assert.Single(entries, entry => entry.IntegrityStatus == SnapshotIntegrityStatus.Valid);
+        Assert.Single(entries, entry => entry.IntegrityStatus == SnapshotIntegrityStatus.Corrupted);
+    }
+
+    [Fact]
     public async Task CreateAsync_MissingSourceFailsWithoutPublishingSnapshot()
     {
         var service = new ZipSnapshotArchiveService();

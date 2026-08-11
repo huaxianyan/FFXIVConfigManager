@@ -131,6 +131,55 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+
+                <Grid Margin="0,14,0,0" ColumnDefinitions="*,260">
+                    <StackPanel Spacing="3">
+                        <TextBlock Classes="section-title" Text="快照历史" />
+                        <TextBlock Opacity="0.65" Text="{Binding SnapshotHistorySummary}" />
+                    </StackPanel>
+                    <TextBox Grid.Column="1" VerticalAlignment="Center"
+                             Text="{Binding SnapshotFilter}"
+                             PlaceholderText="按角色、配置源或状态筛选" />
+                </Grid>
+
+                <ItemsControl ItemsSource="{Binding Snapshots}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SnapshotRowViewModel">
+                            <Border Classes="card" Margin="0,0,0,10" Padding="18,12"
+                                    ToolTip.Tip="{Binding ErrorSummary}">
+                                <Grid ColumnDefinitions="180,2*,110,170,160,90" VerticalAlignment="Center">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding CharacterName}" />
+                                        <TextBlock FontSize="11" Opacity="0.55" Text="{Binding CharacterFolder}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Margin="10,0" Opacity="0.7"
+                                               Text="{Binding FileSummary}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding ProfileName}" />
+                                    <TextBlock Grid.Column="3" Text="{Binding CreatedAt}" />
+                                    <TextBlock Grid.Column="4" FontWeight="SemiBold" Text="{Binding IntegrityText}" />
+                                    <Button Grid.Column="5" Command="{Binding PreviewCommand}" Content="预览" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border Classes="card" Margin="0,0,0,12">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="section-title" Text="{Binding SnapshotPreviewTitle}" />
+                        <ItemsControl ItemsSource="{Binding SnapshotPreviewFiles}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SnapshotFilePreviewViewModel">
+                                    <Grid Margin="0,3" ColumnDefinitions="180,120,*">
+                                        <TextBlock FontFamily="Cascadia Mono,Consolas" Text="{Binding FileName}" />
+                                        <TextBlock Grid.Column="1" Opacity="0.65" Text="{Binding SnapshotSize}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding DifferenceText}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 

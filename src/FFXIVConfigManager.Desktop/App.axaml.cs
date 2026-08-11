@@ -38,6 +38,11 @@ public partial class App : Avalonia.Application
             var createSnapshot = new CreateCharacterSnapshotUseCase(
                 snapshotService,
                 TimeProvider.System);
+            var snapshotLibraryReader = new PhysicalSnapshotLibraryReader(snapshotService);
+            var scanSnapshotLibrary = new ScanSnapshotLibraryUseCase(snapshotLibraryReader);
+            var previewSnapshot = new PreviewSnapshotUseCase(
+                snapshotService,
+                new StableFileHashService());
 
             MainWindow? window = null;
             var folderPicker = new AvaloniaFolderPickerService(() => window);
@@ -45,6 +50,8 @@ public partial class App : Avalonia.Application
                 new ScanProfilesUseCase(configuredDiscovery, scanner),
                 settingsService,
                 createSnapshot,
+                scanSnapshotLibrary,
+                previewSnapshot,
                 folderPicker);
             window = new MainWindow
             {
