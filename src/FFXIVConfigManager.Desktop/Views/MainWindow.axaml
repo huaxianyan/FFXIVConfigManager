@@ -31,6 +31,7 @@
             <Setter Property="Background" Value="#0A808080" />
         </Style>
         <Style Selector="Button.nav">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Padding" Value="16,11" />
             <Setter Property="Margin" Value="0,2" />
@@ -149,31 +150,31 @@
                     <TextBlock Classes="section-title" Text="常用功能" />
                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
                         <Border Classes="card">
-                            <StackPanel Spacing="10">
+                            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
                                 <TextBlock FontSize="16" FontWeight="SemiBold" Text="角色管理" />
-                                <TextBlock Opacity="0.65" TextWrapping="Wrap"
+                                <TextBlock Grid.Row="1" Opacity="0.65" TextWrapping="Wrap"
                                            Text="查看角色配置完整度、设置标记并创建备份。" />
-                                <Button HorizontalAlignment="Left" Command="{Binding ShowCharactersCommand}"
-                                        Content="进入角色管理" />
-                            </StackPanel>
+                                <Button Grid.Row="2" HorizontalAlignment="Left"
+                                        Command="{Binding ShowCharactersCommand}" Content="进入角色管理" />
+                            </Grid>
                         </Border>
                         <Border Grid.Column="1" Classes="card">
-                            <StackPanel Spacing="10">
+                            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
                                 <TextBlock FontSize="16" FontWeight="SemiBold" Text="备份与恢复" />
-                                <TextBlock Opacity="0.65" TextWrapping="Wrap"
+                                <TextBlock Grid.Row="1" Opacity="0.65" TextWrapping="Wrap"
                                            Text="查看备份历史、完整性状态和恢复预览。" />
-                                <Button HorizontalAlignment="Left" Command="{Binding ShowBackupsCommand}"
-                                        Content="查看备份" />
-                            </StackPanel>
+                                <Button Grid.Row="2" HorizontalAlignment="Left"
+                                        Command="{Binding ShowBackupsCommand}" Content="查看备份" />
+                            </Grid>
                         </Border>
                         <Border Grid.Column="2" Classes="card">
-                            <StackPanel Spacing="10">
+                            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
                                 <TextBlock FontSize="16" FontWeight="SemiBold" Text="角色迁移" />
-                                <TextBlock Opacity="0.65" TextWrapping="Wrap"
+                                <TextBlock Grid.Row="1" Opacity="0.65" TextWrapping="Wrap"
                                            Text="选择源角色和目标角色，预览后安全迁移。" />
-                                <Button HorizontalAlignment="Left" Command="{Binding ShowMigrationCommand}"
-                                        Content="开始迁移" />
-                            </StackPanel>
+                                <Button Grid.Row="2" HorizontalAlignment="Left"
+                                        Command="{Binding ShowMigrationCommand}" Content="开始迁移" />
+                            </Grid>
                         </Border>
                     </Grid>
                 </StackPanel>
@@ -214,8 +215,6 @@
                                                     Orientation="Horizontal" Spacing="14">
                                             <TextBlock Opacity="0.65" Text="{Binding ProfileName}" />
                                             <TextBlock FontSize="12" Opacity="0.75" Text="{Binding FileSummary}" />
-                                            <ProgressBar Width="120" Height="5" Margin="0,6,0,0"
-                                                         Minimum="0" Maximum="100" Value="{Binding Completeness}" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
@@ -251,7 +250,7 @@
                             <DataTemplate x:DataType="vm:SnapshotRowViewModel">
                                 <Border Classes="card" Margin="0,0,0,8" Padding="18,12"
                                         ToolTip.Tip="{Binding ErrorSummary}">
-                                    <Grid ColumnDefinitions="190,*,170,90" RowDefinitions="Auto,Auto"
+                                    <Grid ColumnDefinitions="190,*,170,Auto" RowDefinitions="Auto,Auto"
                                           ColumnSpacing="14" RowSpacing="6">
                                         <StackPanel Grid.RowSpan="2" Spacing="2" VerticalAlignment="Center">
                                             <TextBlock FontWeight="SemiBold" Text="{Binding CharacterName}" />
@@ -259,8 +258,12 @@
                                         </StackPanel>
                                         <TextBlock Grid.Column="1" Opacity="0.7" Text="{Binding FileSummary}" />
                                         <TextBlock Grid.Column="2" Text="{Binding CreatedAt}" />
-                                        <Button Grid.Column="3" Grid.RowSpan="2" VerticalAlignment="Center"
-                                                Command="{Binding PreviewCommand}" Content="预览" />
+                                        <StackPanel Grid.Column="3" Grid.RowSpan="2" Orientation="Horizontal"
+                                                    VerticalAlignment="Center" Spacing="6">
+                                            <Button Command="{Binding PreviewCommand}" Content="预览" />
+                                            <Button Command="{Binding DeleteCommand}"
+                                                    Content="{Binding DeleteButtonText}" />
+                                        </StackPanel>
                                         <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
                                                     Orientation="Horizontal" Spacing="14">
                                             <TextBlock Opacity="0.65" Text="{Binding ProfileName}" />
@@ -353,7 +356,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <TextBlock FontSize="12" Opacity="0.6" TextWrapping="Wrap"
-                                       Text="迁移会保存源配置备份和目标操作前恢复点，再使用事务引擎写入目标。默认不迁移隐私、缓存、物品排序和未明确验证的混合状态。" />
+                                       Text="默认范围包含 UISAVE.DAT（界面状态与场地标点），但不包含隐私、缓存和物品排序。高级的“全部 14 个已知文件”模式会覆盖 ACQ.DAT、ITEMFDR.DAT、ITEMODR.DAT 等文件，仅建议确认确有需要时使用。迁移前仍会创建目标恢复点。" />
                         </StackPanel>
                     </Border>
                     <Border Classes="card">
@@ -423,6 +426,17 @@
                                 <Button Grid.Column="3" Command="{Binding AddProfileCommand}"
                                         Content="选择目录并添加" />
                             </Grid>
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <StackPanel Spacing="12">
+                            <TextBlock Classes="section-title" Text="软件设置备份" />
+                            <TextBlock Opacity="0.65" TextWrapping="Wrap"
+                                       Text="导出角色标记及相关软件设置。换设备后导入会按角色目录 ID 重新匹配标记，并保留新设备自己的配置源和备份位置；游戏 DAT 文件仍由角色备份单独管理。" />
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Command="{Binding ExportSettingsCommand}" Content="导出软件设置" />
+                                <Button Command="{Binding ImportSettingsCommand}" Content="导入软件设置" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                     <Border Classes="card">

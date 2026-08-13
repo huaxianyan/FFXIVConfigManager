@@ -22,6 +22,8 @@ public partial class MainViewModel(
     PreviewCharacterMigrationUseCase previewMigration,
     MigrateCharacterConfigurationUseCase migrateCharacter,
     IIncompleteRestoreRecovery incompleteRestoreRecovery,
+    ISnapshotArchiveService snapshotArchiveService,
+    ISettingsTransferService settingsTransferService,
     IFolderPickerService folderPicker) : ViewModelBase
 {
     private readonly List<SnapshotRowViewModel> _allSnapshots = [];
@@ -52,6 +54,8 @@ public partial class MainViewModel(
         new(ConfigScope.Hotbars, "热键栏"),
         new(ConfigScope.Macros, "角色宏"),
         new(ConfigScope.Gearsets, "套装列表"),
+        new(ConfigScope.UiState, "界面状态与场地标点"),
+        new(ConfigScope.AllKnownFiles, "全部 14 个已知文件（高级）", isSelected: false),
     ];
 
     public IReadOnlyList<GameRegionOption> RegionOptions { get; } =
@@ -194,9 +198,7 @@ public partial class MainViewModel(
         {
             var settings = await settingsService.GetAsync(cancellationToken);
             SnapshotLibraryPath = settings.SnapshotLibraryPath ?? "尚未设置备份库";
-            var aliases = settings.CharacterAliases
-                .GroupBy(item => (item.ProfileId, item.CharacterFolder))
-                .ToDictionary(group => group.Key, group => group.Last().Alias);
+            var aliases = BuildAliasLookup(settings.CharacterAliases);
             var results = await scanProfiles.ExecuteAsync(cancellationToken);
             var recoveryResults = await incompleteRestoreRecovery.RecoverAsync(
                 results.SelectMany(result => result.Characters)
@@ -239,9 +241,10 @@ public partial class MainViewModel(
                 foreach (var character in result.Characters)
                 {
                     _currentCharacters[(result.Profile.Id, character.FolderName.Value)] = character;
-                    aliases.TryGetValue(
-                        (result.Profile.Id, character.FolderName.Value),
-                        out var alias);
+                    var alias = FindAlias(
+                        aliases,
+                        result.Profile.Id,
+                        character.FolderName.Value);
                     Characters.Add(CharacterRowViewModel.From(
                         result.Profile,
                         character,
@@ -282,6 +285,55 @@ public partial class MainViewModel(
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunCommand))]
+    private async Task ExportSettingsAsync(CancellationToken cancellationToken)
+    {
+        var path = await folderPicker.PickSaveFileAsync(
+            "导出软件设置与角色标记",
+            $"FFXIVConfigManager-settings-{DateTimeOffset.Now:yyyyMMdd}",
+            ".ffxivconfig-settings.json",
+            cancellationToken);
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await settingsTransferService.ExportAsync(path, cancellationToken);
+            StatusMessage = $"软件设置与角色标记已导出：{Path.GetFileName(path)}";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"导出软件设置失败：{exception.Message}";
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunCommand))]
+    private async Task ImportSettingsAsync(CancellationToken cancellationToken)
+    {
+        var path = await folderPicker.PickOpenFileAsync(
+            "导入软件设置与角色标记",
+            ".ffxivconfig-settings.json",
+            cancellationToken);
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var imported = await settingsTransferService.ImportAsync(path, cancellationToken);
+            await settingsService.ImportPortableAsync(imported, cancellationToken);
+            StatusMessage = "角色标记已导入；本机配置源和备份位置保持不变。";
+            await RefreshAsync(cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"导入软件设置失败：{exception.Message}";
         }
     }
 
@@ -431,9 +483,7 @@ public partial class MainViewModel(
     private async Task ReloadSnapshotsAsync()
     {
         var settings = await settingsService.GetAsync();
-        var aliases = settings.CharacterAliases
-            .GroupBy(item => (item.ProfileId, item.CharacterFolder))
-            .ToDictionary(group => group.Key, group => group.Last().Alias);
+        var aliases = BuildAliasLookup(settings.CharacterAliases);
         await LoadSnapshotsAsync(settings, aliases, CancellationToken.None);
     }
 
@@ -465,12 +515,17 @@ public partial class MainViewModel(
             string? alias = null;
             if (entry.Manifest is not null)
             {
-                aliases.TryGetValue(
-                    (entry.Manifest.Source.ProfileId, entry.Manifest.Source.CharacterFolder),
-                    out alias);
+                alias = FindAlias(
+                    aliases,
+                    entry.Manifest.Source.ProfileId,
+                    entry.Manifest.Source.CharacterFolder);
             }
 
-            _allSnapshots.Add(SnapshotRowViewModel.From(entry, alias, PreviewSnapshotAsync));
+            _allSnapshots.Add(SnapshotRowViewModel.From(
+                entry,
+                alias,
+                PreviewSnapshotAsync,
+                DeleteSnapshotAsync));
         }
 
         ApplySnapshotFilter();
@@ -482,6 +537,30 @@ public partial class MainViewModel(
         SnapshotHistorySummary = corrupted == 0
             ? $"{entries.Count} 个备份，全部校验有效"
             : $"{entries.Count} 个备份 · {corrupted} 个损坏";
+    }
+
+    private async Task DeleteSnapshotAsync(SnapshotLibraryEntry snapshot)
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            await snapshotArchiveService.DeleteAsync(snapshot.ArchivePath);
+            StatusMessage = $"已删除备份：{Path.GetFileName(snapshot.ArchivePath)}";
+            await ReloadSnapshotsAsync();
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"删除备份失败：{exception.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private async Task PreviewSnapshotAsync(SnapshotLibraryEntry snapshot)
@@ -516,7 +595,7 @@ public partial class MainViewModel(
                 file.Difference is SnapshotFileDifference.Different or
                     SnapshotFileDifference.MissingFromTarget);
             SnapshotPreviewTitle = target is null
-                ? "未发现备份对应的本地角色；当前只展示备份内容"
+                ? "本机没有对应角色；可查看备份，但需先添加同角色目录才能恢复"
                 : $"恢复预览：{changed} 个文件将发生变化，" +
                   $"{preview.Files.Count - changed} 个文件相同";
             _previewedSnapshot = snapshot;
@@ -783,6 +862,34 @@ public partial class MainViewModel(
         }
     }
 
+    private static IReadOnlyDictionary<(Guid ProfileId, string CharacterFolder), string> BuildAliasLookup(
+        IReadOnlyList<CharacterAliasSetting> aliases) =>
+        aliases
+            .GroupBy(item => (item.ProfileId, item.CharacterFolder))
+            .ToDictionary(group => group.Key, group => group.Last().Alias);
+
+    private static string? FindAlias(
+        IReadOnlyDictionary<(Guid ProfileId, string CharacterFolder), string> aliases,
+        Guid profileId,
+        string characterFolder)
+    {
+        if (aliases.TryGetValue((profileId, characterFolder), out var exactAlias))
+        {
+            return exactAlias;
+        }
+
+        var matches = aliases
+            .Where(item => string.Equals(
+                item.Key.CharacterFolder,
+                characterFolder,
+                StringComparison.OrdinalIgnoreCase))
+            .Select(item => item.Value)
+            .Distinct(StringComparer.Ordinal)
+            .Take(2)
+            .ToArray();
+        return matches.Length == 1 ? matches[0] : null;
+    }
+
     private bool CanRunCommand() => !IsBusy;
 }
 
@@ -799,14 +906,15 @@ public sealed record GameRegionOption(GameRegion Region, string DisplayName);
 
 public sealed partial class MigrationScopeOptionViewModel(
     ConfigScope scope,
-    string displayName) : ObservableObject
+    string displayName,
+    bool isSelected = true) : ObservableObject
 {
     public ConfigScope Scope { get; } = scope;
 
     public string DisplayName { get; } = displayName;
 
     [ObservableProperty]
-    public partial bool IsSelected { get; set; } = true;
+    public partial bool IsSelected { get; set; } = isSelected;
 }
 
 public sealed partial class ProfileRowViewModel : ObservableObject
@@ -916,14 +1024,17 @@ public sealed partial class SnapshotRowViewModel : ObservableObject
 {
     private readonly SnapshotLibraryEntry _entry;
     private readonly Func<SnapshotLibraryEntry, Task> _preview;
+    private readonly Func<SnapshotLibraryEntry, Task> _delete;
 
     private SnapshotRowViewModel(
         SnapshotLibraryEntry entry,
         string? alias,
-        Func<SnapshotLibraryEntry, Task> preview)
+        Func<SnapshotLibraryEntry, Task> preview,
+        Func<SnapshotLibraryEntry, Task> delete)
     {
         _entry = entry;
         _preview = preview;
+        _delete = delete;
         var manifest = entry.Manifest;
         CharacterName = string.IsNullOrWhiteSpace(alias)
             ? manifest?.Source.CharacterFolder ?? Path.GetFileName(entry.ArchivePath)
@@ -979,16 +1090,35 @@ public sealed partial class SnapshotRowViewModel : ObservableObject
 
     public bool CanPreview { get; }
 
+    [ObservableProperty]
+    public partial bool IsDeleteArmed { get; private set; }
+
+    public string DeleteButtonText => IsDeleteArmed ? "确认删除" : "删除";
+
     public string SearchText { get; }
 
     public static SnapshotRowViewModel From(
         SnapshotLibraryEntry entry,
         string? alias,
-        Func<SnapshotLibraryEntry, Task> preview) =>
-        new(entry, alias, preview);
+        Func<SnapshotLibraryEntry, Task> preview,
+        Func<SnapshotLibraryEntry, Task> delete) =>
+        new(entry, alias, preview, delete);
 
     [RelayCommand(CanExecute = nameof(CanPreviewSnapshot))]
     private Task PreviewAsync() => _preview(_entry);
+
+    [RelayCommand]
+    private async Task DeleteAsync()
+    {
+        if (!IsDeleteArmed)
+        {
+            IsDeleteArmed = true;
+            OnPropertyChanged(nameof(DeleteButtonText));
+            return;
+        }
+
+        await _delete(_entry);
+    }
 
     private bool CanPreviewSnapshot() => CanPreview;
 

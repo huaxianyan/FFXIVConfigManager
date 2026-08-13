@@ -68,6 +68,11 @@ public sealed class PreviewSnapshotUseCaseTests
             string archivePath,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(SnapshotVerificationResult.Valid(manifest));
+
+        public Task DeleteAsync(
+            string archivePath,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 
     private sealed class StubHashService(

@@ -23,6 +23,20 @@ public sealed class CreateCharacterSnapshotUseCase(
             definition => definition.IncludedInDefaultBackup,
             cancellationToken);
 
+    public Task<CreatedSnapshot> ExecuteAllKnownAsync(
+        GameProfile profile,
+        CharacterConfiguration character,
+        string libraryRoot,
+        SnapshotReason reason,
+        CancellationToken cancellationToken = default) =>
+        ExecuteSelectedAsync(
+            profile,
+            character,
+            libraryRoot,
+            reason,
+            _ => true,
+            cancellationToken);
+
     public Task<CreatedSnapshot> ExecuteMigrationSourceAsync(
         GameProfile profile,
         CharacterConfiguration character,
@@ -34,7 +48,8 @@ public sealed class CreateCharacterSnapshotUseCase(
             character,
             libraryRoot,
             SnapshotReason.MigrationSource,
-            definition => definition.IncludedInSafeMigration &&
+            definition => scopes.HasFlag(ConfigScope.AllKnownFiles) ||
+                          definition.IncludedInSafeMigration &&
                           scopes.HasFlag(definition.Scope),
             cancellationToken);
 

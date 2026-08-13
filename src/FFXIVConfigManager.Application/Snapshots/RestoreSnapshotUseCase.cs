@@ -34,7 +34,7 @@ public sealed class RestoreSnapshotUseCase(
                 $"备份完整性校验失败：{string.Join("；", verification.Errors)}");
         }
 
-        var recoveryPoint = await createSnapshot.ExecuteAsync(
+        var recoveryPoint = await createSnapshot.ExecuteAllKnownAsync(
             targetProfile,
             target,
             libraryRoot,

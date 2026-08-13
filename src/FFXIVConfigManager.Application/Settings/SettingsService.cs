@@ -33,6 +33,17 @@ public sealed class SettingsService(ISettingsStore settingsStore)
         return profile;
     }
 
+    public Task ImportPortableAsync(
+        ApplicationSettings settings,
+        CancellationToken cancellationToken = default) =>
+        UpdateAsync(
+            current => current with
+            {
+                CharacterAliases = settings.CharacterAliases,
+                SnapshotLibraryPath = current.SnapshotLibraryPath,
+            },
+            cancellationToken);
+
     public Task SetSnapshotLibraryPathAsync(
         string libraryPath,
         CancellationToken cancellationToken = default)

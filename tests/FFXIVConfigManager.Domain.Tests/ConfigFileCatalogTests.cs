@@ -17,6 +17,16 @@ public sealed class ConfigFileCatalogTests
     }
 
     [Fact]
+    public void Catalog_IncludesUiSaveInSafeMigration()
+    {
+        Assert.True(ConfigFileCatalog.TryGet("UISAVE.DAT", out var uiSave));
+
+        Assert.Equal(ConfigScope.UiState, uiSave.Scope);
+        Assert.True(uiSave.IncludedInSafeMigration);
+        Assert.True(uiSave.IncludedInDefaultBackup);
+    }
+
+    [Fact]
     public void Catalog_LookupIsCaseInsensitive()
     {
         Assert.True(ConfigFileCatalog.TryGet("hotbar.dat", out var definition));

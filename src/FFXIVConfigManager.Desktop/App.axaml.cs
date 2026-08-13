@@ -34,6 +34,7 @@ public partial class App : Avalonia.Application
                 settingsStore);
             var scanner = new PhysicalConfigRootScanner();
             var settingsService = new SettingsService(settingsStore);
+            var settingsTransferService = new JsonSettingsTransferService(settingsStore);
             var snapshotService = new ZipSnapshotArchiveService();
             var createSnapshot = new CreateCharacterSnapshotUseCase(
                 snapshotService,
@@ -66,6 +67,8 @@ public partial class App : Avalonia.Application
                 previewMigration,
                 migrateCharacter,
                 transactionalRestorer,
+                snapshotService,
+                settingsTransferService,
                 folderPicker);
             window = new MainWindow
             {

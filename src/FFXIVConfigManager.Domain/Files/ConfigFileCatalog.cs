@@ -13,6 +13,8 @@ public enum ConfigScope
     InventoryOrder = 1 << 6,
     Miscellaneous = 1 << 7,
     PrivateData = 1 << 8,
+    UiState = 1 << 9,
+    AllKnownFiles = 1 << 10,
 }
 
 public enum FileSensitivity
@@ -48,7 +50,7 @@ public static class ConfigFileCatalog
             ["KEYBIND.DAT"] = new("KEYBIND.DAT", "键位设置", ConfigScope.Controls, true, true),
             ["LOGFLTR.DAT"] = new("LOGFLTR.DAT", "消息窗口过滤器", ConfigScope.Character, true, true),
             ["MACRO.DAT"] = new("MACRO.DAT", "角色专用宏", ConfigScope.Macros, true, true),
-            ["UISAVE.DAT"] = new("UISAVE.DAT", "UI 使用状态", ConfigScope.Miscellaneous, false, true),
+            ["UISAVE.DAT"] = new("UISAVE.DAT", "界面状态与场地标点", ConfigScope.UiState, true, true),
         };
 
     public static IReadOnlyList<ConfigFileDefinition> All { get; } =

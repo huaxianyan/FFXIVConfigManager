@@ -40,4 +40,8 @@ public interface ISnapshotArchiveService
     Task<SnapshotVerificationResult> VerifyAsync(
         string archivePath,
         CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(
+        string archivePath,
+        CancellationToken cancellationToken = default);
 }

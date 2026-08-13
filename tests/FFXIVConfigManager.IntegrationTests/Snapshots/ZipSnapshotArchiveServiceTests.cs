@@ -91,6 +91,22 @@ public sealed class ZipSnapshotArchiveServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteAsync_RemovesPublishedBackup()
+    {
+        var sourceDirectory = Path.Combine(_root, "source-delete");
+        Directory.CreateDirectory(sourceDirectory);
+        var addonPath = Path.Combine(sourceDirectory, "ADDON.DAT");
+        await File.WriteAllTextAsync(addonPath, "valid");
+        var service = new ZipSnapshotArchiveService();
+        var created = await service.CreateAsync(CreateRequest(
+            new SnapshotFileSource(addonPath, "files/ADDON.DAT", "ADDON.DAT")));
+
+        await service.DeleteAsync(created.ArchivePath);
+
+        Assert.False(File.Exists(created.ArchivePath));
+    }
+
+    [Fact]
     public async Task CreateAsync_MissingSourceFailsWithoutPublishingSnapshot()
     {
         var service = new ZipSnapshotArchiveService();

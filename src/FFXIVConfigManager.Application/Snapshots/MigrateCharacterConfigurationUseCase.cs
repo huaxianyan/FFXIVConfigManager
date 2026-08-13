@@ -20,7 +20,8 @@ public sealed class MigrateCharacterConfigurationUseCase(
         ConfigScope.Controls |
         ConfigScope.Hotbars |
         ConfigScope.Macros |
-        ConfigScope.Gearsets;
+        ConfigScope.Gearsets |
+        ConfigScope.UiState;
 
     public async Task<CompletedCharacterMigration> ExecuteAsync(
         GameProfile sourceProfile,
@@ -51,7 +52,7 @@ public sealed class MigrateCharacterConfigurationUseCase(
             throw new ArgumentException("至少选择一个迁移范围。", nameof(scopes));
         }
 
-        var recoveryPoint = await createSnapshot.ExecuteAsync(
+        var recoveryPoint = await createSnapshot.ExecuteAllKnownAsync(
             targetProfile,
             target,
             libraryRoot,

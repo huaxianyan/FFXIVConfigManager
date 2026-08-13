@@ -259,6 +259,31 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
         throw new IOException($"文件在读取期间持续变化，无法获得稳定副本：{source.OriginalFileName}");
     }
 
+    public Task DeleteAsync(
+        string archivePath,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrWhiteSpace(archivePath))
+        {
+            throw new ArgumentException("备份路径不能为空。", nameof(archivePath));
+        }
+
+        var fullPath = Path.GetFullPath(archivePath);
+        if (!File.Exists(fullPath))
+        {
+            return Task.CompletedTask;
+        }
+
+        if (!fullPath.EndsWith(".ffxivconfig.zip", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("只能删除 FFXIVConfigManager 备份文件。");
+        }
+
+        File.Delete(fullPath);
+        return Task.CompletedTask;
+    }
+
     private static async Task WriteArchiveAsync(
         string archivePath,
         SnapshotManifest manifest,

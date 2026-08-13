@@ -23,7 +23,8 @@ public sealed class PreviewCharacterMigrationUseCase(IStableFileHashService file
         }
 
         var selectedFiles = source.Files
-            .Where(file => file.Definition.IncludedInSafeMigration &&
+            .Where(file => scopes.HasFlag(ConfigScope.AllKnownFiles) ||
+                           file.Definition.IncludedInSafeMigration &&
                            scopes.HasFlag(file.Definition.Scope))
             .ToArray();
         if (selectedFiles.Length == 0)
