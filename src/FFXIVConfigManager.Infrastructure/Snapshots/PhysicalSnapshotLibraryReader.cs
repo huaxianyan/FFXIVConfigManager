@@ -12,20 +12,26 @@ public sealed class PhysicalSnapshotLibraryReader(
     {
         if (maximumConcurrency <= 0)
         {
-            throw new InvalidOperationException("快照扫描并发数必须大于零。");
+            throw new InvalidOperationException("备份扫描并发数必须大于零。");
         }
 
-        var snapshotsRoot = Path.Combine(Path.GetFullPath(libraryRoot), "snapshots");
-        if (!Directory.Exists(snapshotsRoot))
+        var normalizedRoot = Path.GetFullPath(libraryRoot);
+        var storageRoots = new[]
         {
-            return [];
-        }
-
-        var archivePaths = Directory
-            .EnumerateFiles(
-                snapshotsRoot,
+            Path.Combine(normalizedRoot, "backups"),
+            // 兼容 0.1.0 预览版创建的目录，新的备份不会再写入这里。
+            Path.Combine(normalizedRoot, "snapshots"),
+        };
+        var pathComparer = OperatingSystem.IsWindows()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+        var archivePaths = storageRoots
+            .Where(Directory.Exists)
+            .SelectMany(root => Directory.EnumerateFiles(
+                root,
                 "*.ffxivconfig.zip",
-                SearchOption.AllDirectories)
+                SearchOption.AllDirectories))
+            .Distinct(pathComparer)
             .ToArray();
         using var concurrency = new SemaphoreSlim(maximumConcurrency, maximumConcurrency);
         var tasks = archivePaths.Select(path =>
@@ -71,7 +77,7 @@ public sealed class PhysicalSnapshotLibraryReader(
                 DateTimeOffset.MinValue,
                 SnapshotIntegrityStatus.Corrupted,
                 null,
-                [$"读取快照失败：{exception.Message}"]);
+                [$"读取备份失败：{exception.Message}"]);
         }
         finally
         {

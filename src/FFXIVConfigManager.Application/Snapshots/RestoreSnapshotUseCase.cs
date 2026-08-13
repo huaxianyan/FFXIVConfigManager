@@ -31,7 +31,7 @@ public sealed class RestoreSnapshotUseCase(
         if (!verification.IsValid || verification.Manifest is null)
         {
             throw new InvalidDataException(
-                $"快照完整性校验失败：{string.Join("；", verification.Errors)}");
+                $"备份完整性校验失败：{string.Join("；", verification.Errors)}");
         }
 
         var recoveryPoint = await createSnapshot.ExecuteAsync(

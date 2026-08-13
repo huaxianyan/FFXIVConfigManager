@@ -33,7 +33,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
         var stagingDirectory = Path.Combine(libraryRoot, ".staging", request.SnapshotId.ToString("N"));
         var targetDirectory = Path.Combine(
             libraryRoot,
-            "snapshots",
+            "backups",
             request.CreatedAtUtc.ToString("yyyy"),
             request.CreatedAtUtc.ToString("MM"));
         var archiveName =
@@ -76,7 +76,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
             if (!verification.IsValid)
             {
                 throw new InvalidDataException(
-                    $"新快照完整性校验失败：{string.Join("；", verification.Errors)}");
+                    $"新备份完整性校验失败：{string.Join("；", verification.Errors)}");
             }
 
             File.Move(temporaryArchivePath, finalArchivePath, overwrite: false);
@@ -97,7 +97,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
         {
             if (!File.Exists(archivePath))
             {
-                return SnapshotVerificationResult.Invalid("快照文件不存在。");
+                return SnapshotVerificationResult.Invalid("备份文件不存在。");
             }
 
             await using var file = new FileStream(
@@ -111,7 +111,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
 
             if (archive.Entries.Count is 0 or > MaximumEntries)
             {
-                return SnapshotVerificationResult.Invalid("快照条目数量超出允许范围。");
+                return SnapshotVerificationResult.Invalid("备份条目数量超出允许范围。");
             }
 
             var entries = new Dictionary<string, ZipArchiveEntry>(StringComparer.Ordinal);
@@ -120,7 +120,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!entries.TryAdd(entry.FullName, entry))
                 {
-                    return SnapshotVerificationResult.Invalid($"快照包含重复条目：{entry.FullName}");
+                    return SnapshotVerificationResult.Invalid($"备份包含重复条目：{entry.FullName}");
                 }
             }
 
@@ -128,7 +128,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
                 manifestEntry.Length <= 0 ||
                 manifestEntry.Length > MaximumManifestSize)
             {
-                return SnapshotVerificationResult.Invalid("快照缺少有效的 manifest.json。");
+                return SnapshotVerificationResult.Invalid("备份缺少有效的 manifest.json。");
             }
 
             SnapshotManifest? manifest;
@@ -142,7 +142,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
 
             if (manifest is null)
             {
-                return SnapshotVerificationResult.Invalid("无法读取快照 Manifest。");
+                return SnapshotVerificationResult.Invalid("无法读取备份 Manifest。");
             }
 
             manifest.Validate();
@@ -153,7 +153,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
 
             if (entries.Keys.Any(name => !expectedEntryNames.Contains(name)))
             {
-                return SnapshotVerificationResult.Invalid("快照包含 Manifest 未声明的条目。");
+                return SnapshotVerificationResult.Invalid("备份包含 Manifest 未声明的条目。");
             }
 
             long totalSize = 0;
@@ -163,19 +163,19 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
                 if (!entries.TryGetValue(expected.ArchivePath, out var entry))
                 {
                     return SnapshotVerificationResult.Invalid(
-                        $"快照缺少文件：{expected.ArchivePath}");
+                        $"备份缺少文件：{expected.ArchivePath}");
                 }
 
                 if (entry.Length != expected.Size || entry.Length > MaximumSingleFileSize)
                 {
                     return SnapshotVerificationResult.Invalid(
-                        $"快照文件大小不匹配：{expected.ArchivePath}");
+                        $"备份文件大小不匹配：{expected.ArchivePath}");
                 }
 
                 totalSize = checked(totalSize + entry.Length);
                 if (totalSize > MaximumTotalSize)
                 {
-                    return SnapshotVerificationResult.Invalid("快照解压后总大小超出允许范围。");
+                    return SnapshotVerificationResult.Invalid("备份解压后总大小超出允许范围。");
                 }
 
                 await using var entryStream = entry.Open();
@@ -183,7 +183,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
                 if (!string.Equals(actualHash, expected.Sha256, StringComparison.OrdinalIgnoreCase))
                 {
                     return SnapshotVerificationResult.Invalid(
-                        $"快照文件哈希不匹配：{expected.ArchivePath}");
+                        $"备份文件哈希不匹配：{expected.ArchivePath}");
                 }
             }
 
@@ -201,7 +201,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
             OverflowException or
             UnauthorizedAccessException)
         {
-            return SnapshotVerificationResult.Invalid($"快照校验失败：{exception.Message}");
+            return SnapshotVerificationResult.Invalid($"备份校验失败：{exception.Message}");
         }
     }
 
@@ -371,7 +371,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
     {
         if (request.SnapshotId == Guid.Empty || request.Files.Count == 0)
         {
-            throw new ArgumentException("快照请求无效。", nameof(request));
+            throw new ArgumentException("备份请求无效。", nameof(request));
         }
 
         var archivePaths = new HashSet<string>(StringComparer.Ordinal);
@@ -383,7 +383,7 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
                 !archivePaths.Add(file.ArchivePath) ||
                 !fileNames.Add(file.OriginalFileName))
             {
-                throw new ArgumentException("快照请求包含无效或重复的文件路径。", nameof(request));
+                throw new ArgumentException("备份请求包含无效或重复的文件路径。", nameof(request));
             }
         }
     }

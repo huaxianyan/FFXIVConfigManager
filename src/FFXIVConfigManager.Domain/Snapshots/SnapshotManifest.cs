@@ -35,22 +35,22 @@ public sealed record SnapshotManifest(
     {
         if (FormatVersion != CurrentFormatVersion)
         {
-            throw new InvalidDataException($"不支持快照格式版本 {FormatVersion}。");
+            throw new InvalidDataException($"不支持备份格式版本 {FormatVersion}。");
         }
 
         if (SnapshotId == Guid.Empty)
         {
-            throw new InvalidDataException("快照 ID 不能为空。");
+            throw new InvalidDataException("备份 ID 不能为空。");
         }
 
         if (Source is null || string.IsNullOrWhiteSpace(Source.CharacterFolder))
         {
-            throw new InvalidDataException("快照缺少来源角色目录。");
+            throw new InvalidDataException("备份缺少来源角色目录。");
         }
 
         if (Files is null || Files.Count == 0)
         {
-            throw new InvalidDataException("快照不包含任何配置文件。");
+            throw new InvalidDataException("备份不包含任何配置文件。");
         }
 
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -58,7 +58,7 @@ public sealed record SnapshotManifest(
         {
             if (file is null)
             {
-                throw new InvalidDataException("快照包含空文件条目。");
+                throw new InvalidDataException("备份包含空文件条目。");
             }
 
             if (string.IsNullOrWhiteSpace(file.OriginalFileName) ||
@@ -70,19 +70,19 @@ public sealed record SnapshotManifest(
                     $"files/{file.OriginalFileName}",
                     StringComparison.Ordinal))
             {
-                throw new InvalidDataException($"快照文件路径无效：{file.ArchivePath}");
+                throw new InvalidDataException($"备份文件路径无效：{file.ArchivePath}");
             }
 
             if (!paths.Add(file.ArchivePath))
             {
-                throw new InvalidDataException($"快照包含重复路径：{file.ArchivePath}");
+                throw new InvalidDataException($"备份包含重复路径：{file.ArchivePath}");
             }
 
             if (file.Size < 0 ||
                 file.Sha256.Length != 64 ||
                 !file.Sha256.All(IsHexadecimal))
             {
-                throw new InvalidDataException($"快照文件元数据无效：{file.ArchivePath}");
+                throw new InvalidDataException($"备份文件元数据无效：{file.ArchivePath}");
             }
         }
     }

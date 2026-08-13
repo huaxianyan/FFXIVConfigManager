@@ -44,7 +44,7 @@ public sealed class PreviewSnapshotUseCase(
         if (!verification.IsValid || verification.Manifest is null)
         {
             throw new InvalidDataException(
-                $"快照已损坏：{string.Join("；", verification.Errors)}");
+                $"备份已损坏：{string.Join("；", verification.Errors)}");
         }
 
         var files = new List<SnapshotFilePreview>(verification.Manifest.Files.Count);

@@ -39,7 +39,7 @@ public sealed class SettingsService(ISettingsStore settingsStore)
     {
         if (string.IsNullOrWhiteSpace(libraryPath))
         {
-            throw new ArgumentException("快照库目录不能为空。", nameof(libraryPath));
+            throw new ArgumentException("备份库目录不能为空。", nameof(libraryPath));
         }
 
         var normalizedPath = Path.GetFullPath(libraryPath);

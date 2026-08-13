@@ -53,7 +53,7 @@ public sealed class CreateCharacterSnapshotUseCase(
 
         if (string.IsNullOrWhiteSpace(libraryRoot))
         {
-            throw new ArgumentException("快照库目录不能为空。", nameof(libraryRoot));
+            throw new ArgumentException("备份库目录不能为空。", nameof(libraryRoot));
         }
 
         var files = character.Files

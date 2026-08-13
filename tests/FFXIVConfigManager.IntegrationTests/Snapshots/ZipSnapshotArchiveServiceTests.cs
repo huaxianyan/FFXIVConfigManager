@@ -66,8 +66,12 @@ public sealed class ZipSnapshotArchiveServiceTests : IDisposable
         var addonPath = Path.Combine(sourceDirectory, "ADDON.DAT");
         await File.WriteAllTextAsync(addonPath, "valid");
         var service = new ZipSnapshotArchiveService();
-        await service.CreateAsync(CreateRequest(
+        var created = await service.CreateAsync(CreateRequest(
             new SnapshotFileSource(addonPath, "files/ADDON.DAT", "ADDON.DAT")));
+        Assert.Contains(
+            $"{Path.DirectorySeparatorChar}backups{Path.DirectorySeparatorChar}",
+            created.ArchivePath,
+            StringComparison.Ordinal);
         var corruptedPath = Path.Combine(
             _root,
             "library",
@@ -75,6 +79,7 @@ public sealed class ZipSnapshotArchiveServiceTests : IDisposable
             "2026",
             "08",
             "corrupted.ffxivconfig.zip");
+        Directory.CreateDirectory(Path.GetDirectoryName(corruptedPath)!);
         await File.WriteAllTextAsync(corruptedPath, "not-a-zip");
         var reader = new PhysicalSnapshotLibraryReader(service);
 

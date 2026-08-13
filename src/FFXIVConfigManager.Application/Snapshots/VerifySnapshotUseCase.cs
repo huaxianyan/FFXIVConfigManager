@@ -8,7 +8,7 @@ public sealed class VerifySnapshotUseCase(ISnapshotArchiveService archiveService
     {
         if (string.IsNullOrWhiteSpace(archivePath))
         {
-            throw new ArgumentException("快照路径不能为空。", nameof(archivePath));
+            throw new ArgumentException("备份路径不能为空。", nameof(archivePath));
         }
 
         return archiveService.VerifyAsync(archivePath, cancellationToken);

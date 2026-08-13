@@ -269,7 +269,7 @@ public sealed class TransactionalSnapshotRestorer(
             cancellationToken.ThrowIfCancellationRequested();
             if (!entries.TryGetValue(expected.ArchivePath, out var entry))
             {
-                throw new InvalidDataException($"快照缺少文件：{expected.ArchivePath}");
+                throw new InvalidDataException($"备份缺少文件：{expected.ArchivePath}");
             }
 
             var stagedPath = Path.Combine(stagedRoot, expected.OriginalFileName);
