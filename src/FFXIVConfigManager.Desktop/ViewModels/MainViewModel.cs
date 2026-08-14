@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using FFXIVConfigManager.Application.Discovery;
 using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
+using FFXIVConfigManager.Desktop.Localization;
 using FFXIVConfigManager.Desktop.Services;
 using FFXIVConfigManager.Domain.Characters;
 using FFXIVConfigManager.Domain.Files;
@@ -24,7 +25,8 @@ public partial class MainViewModel(
     IIncompleteRestoreRecovery incompleteRestoreRecovery,
     ISnapshotArchiveService snapshotArchiveService,
     ISettingsTransferService settingsTransferService,
-    IFolderPickerService folderPicker) : ViewModelBase
+    IFolderPickerService folderPicker,
+    ITextLocalizer text) : ViewModelBase
 {
     private readonly List<SnapshotRowViewModel> _allSnapshots = [];
     private readonly Dictionary<Guid, GameProfile> _currentProfiles = [];
@@ -48,21 +50,21 @@ public partial class MainViewModel(
 
     public IReadOnlyList<MigrationScopeOptionViewModel> MigrationScopes { get; } =
     [
-        new(ConfigScope.Hud, "HUD 与界面"),
-        new(ConfigScope.Character, "角色设置"),
-        new(ConfigScope.Controls, "操作与键位"),
-        new(ConfigScope.Hotbars, "热键栏"),
-        new(ConfigScope.Macros, "角色宏"),
-        new(ConfigScope.Gearsets, "套装列表"),
-        new(ConfigScope.UiState, "界面状态与场地标点"),
-        new(ConfigScope.AllKnownFiles, "全部 14 个已知文件（高级）", isSelected: false),
+        new(ConfigScope.Hud, text["ScopeHud"]),
+        new(ConfigScope.Character, text["ScopeCharacter"]),
+        new(ConfigScope.Controls, text["ScopeControls"]),
+        new(ConfigScope.Hotbars, text["ScopeHotbars"]),
+        new(ConfigScope.Macros, text["ScopeMacros"]),
+        new(ConfigScope.Gearsets, text["ScopeGearsets"]),
+        new(ConfigScope.UiState, text["ScopeUiState"]),
+        new(ConfigScope.AllKnownFiles, text["ScopeAllKnown"], isSelected: false),
     ];
 
     public IReadOnlyList<GameRegionOption> RegionOptions { get; } =
     [
-        new(GameRegion.International, "国际服"),
-        new(GameRegion.China, "国服"),
-        new(GameRegion.Custom, "其他"),
+        new(GameRegion.International, text["RegionInternational"]),
+        new(GameRegion.China, text["RegionChina"]),
+        new(GameRegion.Custom, text["RegionOther"]),
     ];
 
     [ObservableProperty]
@@ -87,21 +89,21 @@ public partial class MainViewModel(
 
     public string PageTitle => CurrentPage switch
     {
-        NavigationPage.Dashboard => "概览",
-        NavigationPage.Characters => "角色管理",
-        NavigationPage.Backups => "备份与恢复",
-        NavigationPage.Migration => "角色迁移",
-        NavigationPage.Settings => "配置与存储",
-        _ => "FFXIV 角色配置管理器",
+        NavigationPage.Dashboard => text["Dashboard"],
+        NavigationPage.Characters => text["Characters"],
+        NavigationPage.Backups => text["Backups"],
+        NavigationPage.Migration => text["Migration"],
+        NavigationPage.Settings => text["Settings"],
+        _ => text["AppTitle"],
     };
 
     public string PageSubtitle => CurrentPage switch
     {
-        NavigationPage.Dashboard => "查看配置状态和备份概况",
-        NavigationPage.Characters => "管理角色标记并创建配置备份",
-        NavigationPage.Backups => "校验、查看并恢复历史备份",
-        NavigationPage.Migration => "在两个角色之间安全迁移配置",
-        NavigationPage.Settings => "管理配置源和备份存储位置",
+        NavigationPage.Dashboard => text["DashboardSubtitle"],
+        NavigationPage.Characters => text["CharactersSubtitle"],
+        NavigationPage.Backups => text["BackupsSubtitle"],
+        NavigationPage.Migration => text["MigrationSubtitle"],
+        NavigationPage.Settings => text["SettingsSubtitle"],
         _ => string.Empty,
     };
 
@@ -126,25 +128,25 @@ public partial class MainViewModel(
     public partial bool IsBusy { get; private set; }
 
     [ObservableProperty]
-    public partial string StatusMessage { get; private set; } = "正在准备扫描配置目录……";
+    public partial string StatusMessage { get; private set; } = text["PreparingScan"];
 
     [ObservableProperty]
-    public partial string ProfileName { get; private set; } = "尚未发现配置源";
+    public partial string ProfileName { get; private set; } = text["NoProfileDiscovered"];
 
     [ObservableProperty]
     public partial string ConfigRoot { get; private set; } = "—";
 
     [ObservableProperty]
-    public partial string Summary { get; private set; } = "0 个角色";
+    public partial string Summary { get; private set; } = text["ZeroCharacters"];
 
     [ObservableProperty]
-    public partial string SnapshotLibraryPath { get; private set; } = "尚未设置备份库";
+    public partial string SnapshotLibraryPath { get; private set; } = text["BackupLibraryNotSet"];
 
     [ObservableProperty]
-    public partial string SnapshotHistorySummary { get; private set; } = "尚无备份";
+    public partial string SnapshotHistorySummary { get; private set; } = text["NoBackups"];
 
     [ObservableProperty]
-    public partial string SnapshotPreviewTitle { get; private set; } = "选择有效备份以预览差异";
+    public partial string SnapshotPreviewTitle { get; private set; } = text["SelectBackupForPreview"];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ConfirmRestoreCommand))]
@@ -166,14 +168,14 @@ public partial class MainViewModel(
     public partial bool CanConfirmMigration { get; private set; }
 
     [ObservableProperty]
-    public partial string MigrationPreviewTitle { get; private set; } = "选择源角色和目标角色后生成迁移预览";
+    public partial string MigrationPreviewTitle { get; private set; } = text["SelectCharactersForMigrationPreview"];
 
     [ObservableProperty]
-    public partial string NewProfileName { get; set; } = "国服";
+    public partial string NewProfileName { get; set; } = text["RegionChina"];
 
     [ObservableProperty]
     public partial GameRegionOption SelectedRegion { get; set; } =
-        new(GameRegion.China, "国服");
+        new(GameRegion.China, text["RegionChina"]);
 
     [RelayCommand]
     private void ShowDashboard() => CurrentPage = NavigationPage.Dashboard;
@@ -194,12 +196,12 @@ public partial class MainViewModel(
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         IsBusy = true;
-        StatusMessage = "正在扫描角色配置……";
+        StatusMessage = text["Scanning"];
 
         try
         {
             var settings = await settingsService.GetAsync(cancellationToken);
-            SnapshotLibraryPath = settings.SnapshotLibraryPath ?? "尚未设置备份库";
+            SnapshotLibraryPath = settings.SnapshotLibraryPath ?? text["BackupLibraryNotSet"];
             var aliases = BuildAliasLookup(settings.CharacterAliases);
             var results = await scanProfiles.ExecuteAsync(cancellationToken);
             var recoveryResults = await incompleteRestoreRecovery.RecoverAsync(
@@ -221,10 +223,10 @@ public partial class MainViewModel(
 
             if (results.Count == 0)
             {
-                ProfileName = "没有可用的配置源";
-                ConfigRoot = "可在下方添加自定义配置目录。";
-                Summary = "0 个角色";
-                StatusMessage = "当前未配置任何 FFXIV 配置目录。";
+                ProfileName = text["NoAvailableProfile"];
+                ConfigRoot = text["AddCustomProfileHint"];
+                Summary = text["ZeroCharacters"];
+                StatusMessage = text["NoConfiguredDirectory"];
                 await LoadSnapshotsAsync(settings, aliases, cancellationToken);
                 return;
             }
@@ -256,7 +258,7 @@ public partial class MainViewModel(
                 }
             }
 
-            Summary = $"{Characters.Count} 个角色 · {results.Count} 个配置源";
+            Summary = text.Format("SummaryFormat", Characters.Count, results.Count);
             var issues = results
                 .Where(result => result.Issue is not null)
                 .Select(result => $"{result.Profile.Name}：{result.Issue}")
@@ -266,23 +268,23 @@ public partial class MainViewModel(
                 .SelectMany(result => result.Errors)
                 .ToArray();
             StatusMessage = failedRecoveries.Length > 0
-                ? $"检测到无法自动回滚的中断事务：{string.Join("；", failedRecoveries)}"
+                ? text.Format("InterruptedTransactionsFormat", string.Join("；", failedRecoveries))
                 : recoveryResults.Count > 0
-                    ? $"已自动回滚 {recoveryResults.Count} 个中断的恢复事务。"
+                    ? text.Format("RecoveredTransactionsFormat", recoveryResults.Count)
                     : issues.Length > 0
                         ? string.Join("　", issues)
                         : Characters.Count == 0
-                            ? "未发现角色配置目录。登录过角色后可在这里看到配置。"
-                            : $"扫描完成于 {DateTimeOffset.Now:HH:mm:ss}";
+                            ? text["NoCharacterFound"]
+                            : text.Format("ScanCompletedFormat", DateTimeOffset.Now);
             await LoadSnapshotsAsync(settings, aliases, cancellationToken);
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "扫描已取消。";
+            StatusMessage = text["ScanCanceled"];
         }
         catch (Exception exception)
         {
-            StatusMessage = $"扫描失败：{exception.Message}";
+            StatusMessage = text.Format("ScanFailedFormat", exception.Message);
         }
         finally
         {
@@ -294,7 +296,7 @@ public partial class MainViewModel(
     private async Task ExportSettingsAsync(CancellationToken cancellationToken)
     {
         var path = await folderPicker.PickSaveFileAsync(
-            "导出软件设置与角色标记",
+            text["ExportSettingsPickerTitle"],
             $"FFXIVConfigManager-settings-{DateTimeOffset.Now:yyyyMMdd}",
             ".ffxivconfig-settings.json",
             cancellationToken);
@@ -306,11 +308,11 @@ public partial class MainViewModel(
         try
         {
             await settingsTransferService.ExportAsync(path, cancellationToken);
-            StatusMessage = $"软件设置与角色标记已导出：{Path.GetFileName(path)}";
+            StatusMessage = text.Format("SettingsExportedFormat", Path.GetFileName(path));
         }
         catch (Exception exception)
         {
-            StatusMessage = $"导出软件设置失败：{exception.Message}";
+            StatusMessage = text.Format("ExportSettingsFailedFormat", exception.Message);
         }
     }
 
@@ -318,7 +320,7 @@ public partial class MainViewModel(
     private async Task ImportSettingsAsync(CancellationToken cancellationToken)
     {
         var path = await folderPicker.PickOpenFileAsync(
-            "导入软件设置与角色标记",
+            text["ImportSettingsPickerTitle"],
             ".ffxivconfig-settings.json",
             cancellationToken);
         if (path is null)
@@ -330,12 +332,12 @@ public partial class MainViewModel(
         {
             var imported = await settingsTransferService.ImportAsync(path, cancellationToken);
             await settingsService.ImportPortableAsync(imported, cancellationToken);
-            StatusMessage = "角色标记已合并导入；同角色目录的导入标记优先，本机配置源和备份位置保持不变。";
+            StatusMessage = text["SettingsImported"];
             await RefreshAsync(cancellationToken);
         }
         catch (Exception exception)
         {
-            StatusMessage = $"导入软件设置失败：{exception.Message}";
+            StatusMessage = text.Format("ImportSettingsFailedFormat", exception.Message);
         }
     }
 
@@ -343,7 +345,7 @@ public partial class MainViewModel(
     private async Task AddProfileAsync(CancellationToken cancellationToken)
     {
         var selectedPath = await folderPicker.PickFolderAsync(
-            "选择 FFXIV 配置根目录",
+            text["SelectProfileDirectory"],
             cancellationToken);
         if (string.IsNullOrWhiteSpace(selectedPath))
         {
@@ -358,7 +360,7 @@ public partial class MainViewModel(
                 Path.TrimEndingDirectorySeparator(Path.GetFullPath(profile.ConfigRoot)),
                 normalizedPath)))
         {
-            StatusMessage = "该配置目录已经存在。";
+            StatusMessage = text["ProfileAlreadyExists"];
             return;
         }
 
@@ -373,11 +375,11 @@ public partial class MainViewModel(
                 SelectedRegion.Region,
                 normalizedPath,
                 cancellationToken);
-            StatusMessage = $"已添加配置源「{name}」。";
+            StatusMessage = text.Format("ProfileAddedFormat", name);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            StatusMessage = $"添加配置源失败：{exception.Message}";
+            StatusMessage = text.Format("AddProfileFailedFormat", exception.Message);
             return;
         }
         finally
@@ -392,7 +394,7 @@ public partial class MainViewModel(
     private async Task SelectSnapshotLibraryAsync(CancellationToken cancellationToken)
     {
         var selectedPath = await folderPicker.PickFolderAsync(
-            "选择备份库目录",
+            text["SelectBackupLibraryDirectory"],
             cancellationToken);
         if (string.IsNullOrWhiteSpace(selectedPath))
         {
@@ -404,12 +406,12 @@ public partial class MainViewModel(
         {
             await settingsService.SetSnapshotLibraryPathAsync(selectedPath, cancellationToken);
             SnapshotLibraryPath = Path.GetFullPath(selectedPath);
-            StatusMessage = "已更新备份库目录。";
+            StatusMessage = text["BackupLibraryUpdated"];
             await ReloadSnapshotsAsync();
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            StatusMessage = $"设置备份库失败：{exception.Message}";
+            StatusMessage = text.Format("SetBackupLibraryFailedFormat", exception.Message);
         }
         finally
         {
@@ -423,11 +425,11 @@ public partial class MainViewModel(
         try
         {
             await settingsService.RemoveProfileAsync(profileId);
-            StatusMessage = "已移除自定义配置源，磁盘上的游戏配置未被修改。";
+            StatusMessage = text["ProfileRemoved"];
         }
         catch (Exception exception)
         {
-            StatusMessage = $"移除配置源失败：{exception.Message}";
+            StatusMessage = text.Format("RemoveProfileFailedFormat", exception.Message);
             return;
         }
         finally
@@ -444,7 +446,7 @@ public partial class MainViewModel(
     {
         if (IsBusy)
         {
-            StatusMessage = "已有操作正在进行，请稍候。";
+            StatusMessage = text["OperationInProgress"];
             return;
         }
 
@@ -455,10 +457,10 @@ public partial class MainViewModel(
             var libraryPath = settings.SnapshotLibraryPath;
             if (string.IsNullOrWhiteSpace(libraryPath))
             {
-                libraryPath = await folderPicker.PickFolderAsync("选择备份库目录");
+                libraryPath = await folderPicker.PickFolderAsync(text["SelectBackupLibraryDirectory"]);
                 if (string.IsNullOrWhiteSpace(libraryPath))
                 {
-                    StatusMessage = "创建备份已取消：尚未设置备份库。";
+                    StatusMessage = text["CreateBackupCanceled"];
                     return;
                 }
 
@@ -466,15 +468,16 @@ public partial class MainViewModel(
                 SnapshotLibraryPath = Path.GetFullPath(libraryPath);
             }
 
-            StatusMessage = $"正在为 {character.FolderName.Value} 创建稳定备份……";
+            StatusMessage = text.Format("CreatingBackupFormat", character.FolderName.Value);
             var result = await createSnapshot.ExecuteAsync(profile, character, libraryPath);
-            StatusMessage =
-                $"备份创建并校验成功：{Path.GetFileName(result.ArchivePath)}";
+            StatusMessage = text.Format(
+                "BackupCreatedFormat",
+                Path.GetFileName(result.ArchivePath));
             await ReloadSnapshotsAsync();
         }
         catch (Exception exception)
         {
-            StatusMessage = $"创建备份失败：{exception.Message}";
+            StatusMessage = text.Format("CreateBackupFailedFormat", exception.Message);
         }
         finally
         {
@@ -500,12 +503,12 @@ public partial class MainViewModel(
         HealthyBackupCount = 0;
         CorruptedBackupCount = 0;
         SnapshotPreviewFiles.Clear();
-        SnapshotPreviewTitle = "选择有效备份以预览差异";
+        SnapshotPreviewTitle = text["SelectBackupForPreview"];
         ClearRestoreSelection();
 
         if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
         {
-            SnapshotHistorySummary = "尚未设置备份库";
+            SnapshotHistorySummary = text["BackupLibraryNotSet"];
             return;
         }
 
@@ -537,8 +540,8 @@ public partial class MainViewModel(
         CorruptedBackupCount = corrupted;
         HealthyBackupCount = entries.Count - corrupted;
         SnapshotHistorySummary = corrupted == 0
-            ? $"{entries.Count} 个备份，全部校验有效"
-            : $"{entries.Count} 个备份 · {corrupted} 个损坏";
+            ? text.Format("AllBackupsValidFormat", entries.Count)
+            : text.Format("BackupSummaryFormat", entries.Count, corrupted);
     }
 
     private async Task DeleteSnapshotAsync(SnapshotLibraryEntry snapshot)
@@ -552,12 +555,12 @@ public partial class MainViewModel(
         try
         {
             await snapshotArchiveService.DeleteAsync(snapshot.ArchivePath);
-            StatusMessage = $"已删除备份：{Path.GetFileName(snapshot.ArchivePath)}";
+            StatusMessage = text.Format("BackupDeletedFormat", Path.GetFileName(snapshot.ArchivePath));
             await ReloadSnapshotsAsync();
         }
         catch (Exception exception)
         {
-            StatusMessage = $"删除备份失败：{exception.Message}";
+            StatusMessage = text.Format("DeleteBackupFailedFormat", exception.Message);
         }
         finally
         {
@@ -569,7 +572,7 @@ public partial class MainViewModel(
     {
         if (IsBusy)
         {
-            StatusMessage = "已有操作正在进行，请稍候。";
+            StatusMessage = text["OperationInProgress"];
             return;
         }
 
@@ -597,21 +600,23 @@ public partial class MainViewModel(
                 file.Difference is SnapshotFileDifference.Different or
                     SnapshotFileDifference.MissingFromTarget);
             SnapshotPreviewTitle = target is null
-                ? "本机没有对应角色；可查看备份，但需先添加同角色目录才能恢复"
-                : $"恢复预览：{changed} 个文件将发生变化，" +
-                  $"{preview.Files.Count - changed} 个文件相同";
+                ? text["TargetCharacterUnavailable"]
+                : text.Format(
+                    "RestorePreviewFormat",
+                    changed,
+                    preview.Files.Count - changed);
             _previewedSnapshot = snapshot;
             _previewedTarget = target;
             _previewedTargetProfile = targetProfile;
             CanRestorePreview = target is not null && targetProfile is not null;
-            StatusMessage = "备份已重新校验，恢复预览已生成。";
+            StatusMessage = text["BackupPreviewReady"];
         }
         catch (Exception exception)
         {
             SnapshotPreviewFiles.Clear();
-            SnapshotPreviewTitle = "无法生成预览";
+            SnapshotPreviewTitle = text["PreviewUnavailable"];
             ClearRestoreSelection();
-            StatusMessage = $"备份预览失败：{exception.Message}";
+            StatusMessage = text.Format("BackupPreviewFailedFormat", exception.Message);
         }
         finally
         {
@@ -636,19 +641,20 @@ public partial class MainViewModel(
             var settings = await settingsService.GetAsync(cancellationToken);
             if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
             {
-                throw new InvalidOperationException("尚未设置备份库，无法创建恢复点。");
+                throw new InvalidOperationException(text["RecoveryPointRequiresLibrary"]);
             }
 
-            StatusMessage = "正在创建操作前恢复点并执行事务式恢复……";
+            StatusMessage = text["Restoring"];
             var result = await restoreSnapshot.ExecuteAsync(
                 _previewedSnapshot,
                 _previewedTargetProfile,
                 _previewedTarget,
                 settings.SnapshotLibraryPath,
                 cancellationToken);
-            completionMessage =
-                $"成功恢复 {result.RestoreResult.RestoredFileCount} 个文件；" +
-                $"恢复点：{Path.GetFileName(result.RecoveryPoint.ArchivePath)}";
+            completionMessage = text.Format(
+                "RestoreCompletedFormat",
+                result.RestoreResult.RestoredFileCount,
+                Path.GetFileName(result.RecoveryPoint.ArchivePath));
             StatusMessage = completionMessage;
             ClearRestoreSelection();
         }
@@ -656,15 +662,15 @@ public partial class MainViewModel(
         {
             StatusMessage = exception.RollbackCompleted
                 ? exception.Message
-                : $"严重错误：{exception.Message}。请使用操作前恢复点手动恢复。";
+                : text.Format("RestoreCriticalErrorFormat", exception.Message);
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "恢复已取消；已提交的文件已回滚。";
+            StatusMessage = text["RestoreCanceled"];
         }
         catch (Exception exception)
         {
-            StatusMessage = $"恢复失败：{exception.Message}";
+            StatusMessage = text.Format("RestoreFailedFormat", exception.Message);
         }
         finally
         {
@@ -705,20 +711,21 @@ public partial class MainViewModel(
 
             var changed = preview.Files.Count(file =>
                 file.Difference != SnapshotFileDifference.Identical);
-            MigrationPreviewTitle =
-                $"迁移预览：{changed} 个文件将变化，" +
-                $"{preview.Files.Count - changed} 个文件相同";
+            MigrationPreviewTitle = text.Format(
+                "MigrationPreviewFormat",
+                changed,
+                preview.Files.Count - changed);
             _previewedMigrationSource = SelectedMigrationSource;
             _previewedMigrationTarget = SelectedMigrationTarget;
             _previewedMigrationScopes = scopes;
             CanConfirmMigration = true;
-            StatusMessage = "迁移预览已生成；确认前不会写入目标角色。";
+            StatusMessage = text["MigrationPreviewReady"];
         }
         catch (Exception exception)
         {
             ClearMigrationPreview();
-            MigrationPreviewTitle = "无法生成迁移预览";
-            StatusMessage = $"迁移预览失败：{exception.Message}";
+            MigrationPreviewTitle = text["MigrationPreviewUnavailable"];
+            StatusMessage = text.Format("MigrationPreviewFailedFormat", exception.Message);
         }
         finally
         {
@@ -740,7 +747,7 @@ public partial class MainViewModel(
             SelectedMigrationTarget != _previewedMigrationTarget)
         {
             ClearMigrationPreview();
-            StatusMessage = "迁移选择已变化，请重新生成预览。";
+            StatusMessage = text["MigrationSelectionChanged"];
             return;
         }
 
@@ -751,10 +758,10 @@ public partial class MainViewModel(
             var settings = await settingsService.GetAsync(cancellationToken);
             if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
             {
-                throw new InvalidOperationException("请先设置备份库，以保存迁移源和目标恢复点。");
+                throw new InvalidOperationException(text["MigrationRequiresLibrary"]);
             }
 
-            StatusMessage = "正在创建迁移源备份和目标恢复点……";
+            StatusMessage = text["PreparingMigration"];
             var result = await migrateCharacter.ExecuteAsync(
                 _previewedMigrationSource.Profile,
                 _previewedMigrationSource.Character,
@@ -763,9 +770,10 @@ public partial class MainViewModel(
                 settings.SnapshotLibraryPath,
                 currentScopes,
                 cancellationToken);
-            completionMessage =
-                $"迁移完成：{result.RestoreResult.RestoredFileCount} 个文件；" +
-                $"目标恢复点：{Path.GetFileName(result.TargetRecoveryPoint.ArchivePath)}";
+            completionMessage = text.Format(
+                "MigrationCompletedFormat",
+                result.RestoreResult.RestoredFileCount,
+                Path.GetFileName(result.TargetRecoveryPoint.ArchivePath));
             StatusMessage = completionMessage;
             ClearMigrationPreview();
         }
@@ -773,15 +781,15 @@ public partial class MainViewModel(
         {
             StatusMessage = exception.RollbackCompleted
                 ? exception.Message
-                : $"严重错误：{exception.Message}";
+                : text.Format("MigrationCriticalErrorFormat", exception.Message);
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "迁移已取消；若已开始写入，已提交文件已回滚。";
+            StatusMessage = text["MigrationCanceled"];
         }
         catch (Exception exception)
         {
-            StatusMessage = $"迁移失败：{exception.Message}";
+            StatusMessage = text.Format("MigrationFailedFormat", exception.Message);
         }
         finally
         {
@@ -821,7 +829,7 @@ public partial class MainViewModel(
         _previewedMigrationScopes = ConfigScope.None;
         CanConfirmMigration = false;
         MigrationPreviewFiles.Clear();
-        MigrationPreviewTitle = "选择源角色和目标角色后生成迁移预览";
+        MigrationPreviewTitle = text["SelectCharactersForMigrationPreview"];
     }
 
     private void ClearRestoreSelection()
@@ -855,12 +863,12 @@ public partial class MainViewModel(
         {
             await settingsService.SetCharacterAliasAsync(profileId, folderName, alias);
             StatusMessage = string.IsNullOrWhiteSpace(alias)
-                ? "已清除角色标记。"
-                : $"已保存角色标记「{alias.Trim()}」。";
+                ? text["CharacterTagCleared"]
+                : text.Format("CharacterTagSavedFormat", alias.Trim());
         }
         catch (Exception exception)
         {
-            StatusMessage = $"保存角色标记失败：{exception.Message}";
+            StatusMessage = text.Format("SaveCharacterTagFailedFormat", exception.Message);
         }
     }
 
@@ -929,9 +937,9 @@ public sealed partial class ProfileRowViewModel : ObservableObject
         Name = profile.Name;
         Region = profile.Region switch
         {
-            GameRegion.International => "国际服",
-            GameRegion.China => "国服",
-            _ => "其他",
+            GameRegion.International => ResourceTextLocalizer.Instance["RegionInternational"],
+            GameRegion.China => ResourceTextLocalizer.Instance["RegionChina"],
+            _ => ResourceTextLocalizer.Instance["RegionOther"],
         };
         ConfigRoot = profile.ConfigRoot;
         CanRemove = profile.Origin == GameProfileOrigin.User;
@@ -982,8 +990,11 @@ public sealed partial class CharacterRowViewModel : ObservableObject
         ProfileName = profile.Name;
         FolderName = character.FolderName.Value;
         Alias = alias ?? string.Empty;
-        LastModified = character.LastModifiedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-        FileSummary = $"{character.ExistingFileCount}/{character.ExpectedFileCount} 个已知文件";
+        LastModified = character.LastModifiedUtc.ToLocalTime().ToString("g");
+        FileSummary = ResourceTextLocalizer.Instance.Format(
+            "KnownFileCountFormat",
+            character.ExistingFileCount,
+            character.ExpectedFileCount);
     }
 
     public GameProfile Profile => _profile;
@@ -1038,24 +1049,28 @@ public sealed partial class SnapshotRowViewModel : ObservableObject
         CharacterName = string.IsNullOrWhiteSpace(alias)
             ? manifest?.Source.CharacterFolder ?? Path.GetFileName(entry.ArchivePath)
             : alias;
-        CharacterFolder = manifest?.Source.CharacterFolder ?? "无法读取";
-        ProfileName = manifest?.Source.ProfileName ?? "未知来源";
+        var text = ResourceTextLocalizer.Instance;
+        CharacterFolder = manifest?.Source.CharacterFolder ?? text["Unavailable"];
+        ProfileName = manifest?.Source.ProfileName ?? text["UnknownSource"];
         CreatedAt = (manifest?.CreatedAtUtc ?? entry.ArchiveLastWriteTimeUtc)
             .ToLocalTime()
-            .ToString("yyyy-MM-dd HH:mm:ss");
+            .ToString("g");
         FileSummary = manifest is null
-            ? "Manifest 不可用"
-            : $"{manifest.Files.Count} 个文件 · {FormatSize(entry.ArchiveSize)}";
+            ? text["ManifestUnavailable"]
+            : text.Format(
+                "FileCountAndSizeFormat",
+                manifest.Files.Count,
+                FormatSize(entry.ArchiveSize));
         IntegrityText = entry.IntegrityStatus == SnapshotIntegrityStatus.Valid
-            ? "有效"
-            : "损坏";
+            ? text["IntegrityValid"]
+            : text["IntegrityCorrupted"];
         TypeText = manifest?.Reason switch
         {
-            SnapshotReason.BeforeMigration => "迁移前恢复点",
-            SnapshotReason.BeforeRestore => "恢复前恢复点",
-            SnapshotReason.MigrationSource => "迁移源",
-            SnapshotReason.Manual => "手动备份",
-            _ => "未知类型",
+            SnapshotReason.BeforeMigration => text["TypeBeforeMigration"],
+            SnapshotReason.BeforeRestore => text["TypeBeforeRestore"],
+            SnapshotReason.MigrationSource => text["TypeMigrationSource"],
+            SnapshotReason.Manual => text["TypeManual"],
+            _ => text["TypeUnknown"],
         };
         ErrorSummary = entry.Errors.Count == 0
             ? string.Empty
@@ -1092,7 +1107,9 @@ public sealed partial class SnapshotRowViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsDeleteArmed { get; private set; }
 
-    public string DeleteButtonText => IsDeleteArmed ? "确认删除" : "删除";
+    public string DeleteButtonText => IsDeleteArmed
+        ? ResourceTextLocalizer.Instance["ConfirmDelete"]
+        : ResourceTextLocalizer.Instance["Delete"];
 
     public string SearchText { get; }
 
@@ -1142,9 +1159,9 @@ public sealed record SnapshotFilePreviewViewModel(
                 : $"{preview.SnapshotSize} B",
             preview.Difference switch
             {
-                SnapshotFileDifference.Identical => "相同，不需要覆盖",
-                SnapshotFileDifference.Different => "内容不同，将被覆盖",
-                SnapshotFileDifference.MissingFromTarget => "目标缺失，将新增",
-                _ => "未找到对应的本地角色",
+                SnapshotFileDifference.Identical => ResourceTextLocalizer.Instance["DifferenceIdentical"],
+                SnapshotFileDifference.Different => ResourceTextLocalizer.Instance["DifferenceDifferent"],
+                SnapshotFileDifference.MissingFromTarget => ResourceTextLocalizer.Instance["DifferenceMissing"],
+                _ => ResourceTextLocalizer.Instance["DifferenceTargetUnavailable"],
             });
 }

@@ -140,7 +140,7 @@ public sealed class TransactionalSnapshotRestorer(
 
             var message = rollbackCompleted
                 ? $"恢复失败，目标配置已回滚：{exception.Message}"
-                : $"恢复失败且回滚不完整：{exception.Message}；{string.Join("；", rollbackErrors)}";
+                : $"恢复失败且回滚不完整，原始错误：{exception.Message}，回滚错误：{string.Join("；", rollbackErrors)}";
             throw new SnapshotRestoreException(message, rollbackCompleted, exception);
         }
     }

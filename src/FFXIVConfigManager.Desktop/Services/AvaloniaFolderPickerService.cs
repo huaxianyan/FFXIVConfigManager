@@ -1,9 +1,12 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using FFXIVConfigManager.Desktop.Localization;
 
 namespace FFXIVConfigManager.Desktop.Services;
 
-public sealed class AvaloniaFolderPickerService(Func<Window?> ownerAccessor) : IFolderPickerService
+public sealed class AvaloniaFolderPickerService(
+    Func<Window?> ownerAccessor,
+    ITextLocalizer text) : IFolderPickerService
 {
     public async Task<string?> PickFolderAsync(
         string title,
@@ -75,8 +78,8 @@ public sealed class AvaloniaFolderPickerService(Func<Window?> ownerAccessor) : I
         return file?.Path.LocalPath;
     }
 
-    private static FilePickerFileType CreateFileType(string extension) =>
-        new("FFXIVConfigManager 设置备份")
+    private FilePickerFileType CreateFileType(string extension) =>
+        new(text["SettingsBackupFileType"])
         {
             Patterns = [$"*{extension}"],
         };

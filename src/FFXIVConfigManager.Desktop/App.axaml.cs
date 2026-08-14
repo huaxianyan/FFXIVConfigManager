@@ -4,6 +4,7 @@ using Avalonia.Markup.Xaml;
 using FFXIVConfigManager.Application.Discovery;
 using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
+using FFXIVConfigManager.Desktop.Localization;
 using FFXIVConfigManager.Desktop.Services;
 using FFXIVConfigManager.Desktop.ViewModels;
 using FFXIVConfigManager.Desktop.Views;
@@ -56,7 +57,8 @@ public partial class App : Avalonia.Application
                 transactionalRestorer);
 
             MainWindow? window = null;
-            var folderPicker = new AvaloniaFolderPickerService(() => window);
+            var text = ResourceTextLocalizer.Instance;
+            var folderPicker = new AvaloniaFolderPickerService(() => window, text);
             var viewModel = new MainViewModel(
                 new ScanProfilesUseCase(configuredDiscovery, scanner),
                 settingsService,
@@ -69,7 +71,8 @@ public partial class App : Avalonia.Application
                 transactionalRestorer,
                 snapshotService,
                 settingsTransferService,
-                folderPicker);
+                folderPicker,
+                text);
             window = new MainWindow
             {
                 DataContext = viewModel,

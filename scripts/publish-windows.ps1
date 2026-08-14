@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$Runtime = "win-x64",
     [string]$Configuration = "Release"

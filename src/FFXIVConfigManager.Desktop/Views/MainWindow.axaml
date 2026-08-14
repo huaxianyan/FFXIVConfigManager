@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:FFXIVConfigManager.Desktop.ViewModels"
+        xmlns:l10n="using:FFXIVConfigManager.Desktop.Localization"
         x:Class="FFXIVConfigManager.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Width="1200"
@@ -8,7 +9,7 @@
         MinWidth="960"
         MinHeight="640"
         Icon="/Assets/app.ico"
-        Title="FFXIV 角色配置管理器">
+        Title="{l10n:Tr AppTitle}">
 
     <Window.Styles>
         <Style Selector="TextBlock.page-title">
@@ -54,26 +55,26 @@
                 BorderBrush="#40808080" BorderThickness="0,0,1,0">
             <Grid Margin="16" RowDefinitions="Auto,Auto,*,Auto">
                 <StackPanel Margin="8,10,8,22" Spacing="4">
-                    <TextBlock FontSize="19" FontWeight="SemiBold" Text="FFXIV 配置管理器" />
-                    <TextBlock FontSize="12" Opacity="0.6" Text="安全备份与迁移" />
+                    <TextBlock FontSize="19" FontWeight="SemiBold" Text="{l10n:Tr AppShortTitle}" />
+                    <TextBlock FontSize="12" Opacity="0.6" Text="{l10n:Tr AppTagline}" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1">
                     <Button Classes.nav="True" Classes.active="{Binding IsDashboardPage}"
-                            Command="{Binding ShowDashboardCommand}" Content="概览" />
+                            Command="{Binding ShowDashboardCommand}" Content="{l10n:Tr Dashboard}" />
                     <Button Classes.nav="True" Classes.active="{Binding IsCharactersPage}"
-                            Command="{Binding ShowCharactersCommand}" Content="角色管理" />
+                            Command="{Binding ShowCharactersCommand}" Content="{l10n:Tr Characters}" />
                     <Button Classes.nav="True" Classes.active="{Binding IsBackupsPage}"
-                            Command="{Binding ShowBackupsCommand}" Content="备份与恢复" />
+                            Command="{Binding ShowBackupsCommand}" Content="{l10n:Tr Backups}" />
                     <Button Classes.nav="True" Classes.active="{Binding IsMigrationPage}"
-                            Command="{Binding ShowMigrationCommand}" Content="角色迁移" />
+                            Command="{Binding ShowMigrationCommand}" Content="{l10n:Tr Migration}" />
                     <Button Classes.nav="True" Classes.active="{Binding IsSettingsPage}"
-                            Command="{Binding ShowSettingsCommand}" Content="配置与存储" />
+                            Command="{Binding ShowSettingsCommand}" Content="{l10n:Tr Settings}" />
                 </StackPanel>
 
                 <Border Grid.Row="3" Classes="card" Padding="12">
                     <StackPanel Spacing="5">
-                        <TextBlock FontSize="12" FontWeight="SemiBold" Text="当前状态" />
+                        <TextBlock FontSize="12" FontWeight="SemiBold" Text="{l10n:Tr CurrentStatus}" />
                         <TextBlock FontSize="11" Opacity="0.65" TextWrapping="Wrap"
                                    MaxLines="4" Text="{Binding StatusMessage}" />
                     </StackPanel>
@@ -91,7 +92,7 @@
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12"
                                 VerticalAlignment="Center">
                         <ProgressBar Width="90" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
-                        <Button Command="{Binding RefreshCommand}" Content="重新扫描" />
+                        <Button Command="{Binding RefreshCommand}" Content="{l10n:Tr Refresh}" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -103,25 +104,25 @@
                     <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="14">
                         <Border Classes="card">
                             <StackPanel Spacing="5">
-                                <TextBlock Opacity="0.65" Text="配置源" />
+                                <TextBlock Opacity="0.65" Text="{l10n:Tr ProfileSource}" />
                                 <TextBlock Classes="stat-value" Text="{Binding Profiles.Count}" />
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="1" Classes="card">
                             <StackPanel Spacing="5">
-                                <TextBlock Opacity="0.65" Text="已发现角色" />
+                                <TextBlock Opacity="0.65" Text="{l10n:Tr DiscoveredCharacters}" />
                                 <TextBlock Classes="stat-value" Text="{Binding Characters.Count}" />
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="2" Classes="card">
                             <StackPanel Spacing="5">
-                                <TextBlock Opacity="0.65" Text="有效备份" />
+                                <TextBlock Opacity="0.65" Text="{l10n:Tr ValidBackups}" />
                                 <TextBlock Classes="stat-value" Text="{Binding HealthyBackupCount}" />
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="3" Classes="card">
                             <StackPanel Spacing="5">
-                                <TextBlock Opacity="0.65" Text="损坏备份" />
+                                <TextBlock Opacity="0.65" Text="{l10n:Tr CorruptedBackups}" />
                                 <TextBlock Classes="stat-value" Text="{Binding CorruptedBackupCount}" />
                             </StackPanel>
                         </Border>
@@ -129,15 +130,15 @@
 
                     <Border Classes="card">
                         <StackPanel Spacing="12">
-                            <TextBlock Classes="section-title" Text="系统状态" />
+                            <TextBlock Classes="section-title" Text="{l10n:Tr SystemStatus}" />
                             <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
-                                <TextBlock Opacity="0.6" Text="扫描结果" />
+                                <TextBlock Opacity="0.6" Text="{l10n:Tr ScanResult}" />
                                 <TextBlock Grid.Column="1" Text="{Binding Summary}" />
-                                <TextBlock Grid.Row="1" Opacity="0.6" Text="主要配置源" />
+                                <TextBlock Grid.Row="1" Opacity="0.6" Text="{l10n:Tr PrimaryProfile}" />
                                 <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ProfileName}" />
-                                <TextBlock Grid.Row="2" Opacity="0.6" Text="备份状态" />
+                                <TextBlock Grid.Row="2" Opacity="0.6" Text="{l10n:Tr BackupStatus}" />
                                 <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SnapshotHistorySummary}" />
-                                <TextBlock Grid.Row="3" Opacity="0.6" Text="备份位置" />
+                                <TextBlock Grid.Row="3" Opacity="0.6" Text="{l10n:Tr BackupLocation}" />
                                 <TextBlock Grid.Row="3" Grid.Column="1" Opacity="0.75"
                                            Text="{Binding SnapshotLibraryPath}" TextTrimming="CharacterEllipsis" />
                             </Grid>
@@ -147,33 +148,33 @@
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Classes="section-title" Text="常用功能" />
+                    <TextBlock Classes="section-title" Text="{l10n:Tr CommonActions}" />
                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
                         <Border Classes="card">
                             <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
-                                <TextBlock FontSize="16" FontWeight="SemiBold" Text="角色管理" />
+                                <TextBlock FontSize="16" FontWeight="SemiBold" Text="{l10n:Tr Characters}" />
                                 <TextBlock Grid.Row="1" Opacity="0.65" TextWrapping="Wrap"
-                                           Text="查看角色配置文件、设置标记并创建备份。" />
+                                           Text="{l10n:Tr CharactersCardDescription}" />
                                 <Button Grid.Row="2" HorizontalAlignment="Left"
-                                        Command="{Binding ShowCharactersCommand}" Content="进入角色管理" />
+                                        Command="{Binding ShowCharactersCommand}" Content="{l10n:Tr OpenCharacters}" />
                             </Grid>
                         </Border>
                         <Border Grid.Column="1" Classes="card">
                             <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
-                                <TextBlock FontSize="16" FontWeight="SemiBold" Text="备份与恢复" />
+                                <TextBlock FontSize="16" FontWeight="SemiBold" Text="{l10n:Tr Backups}" />
                                 <TextBlock Grid.Row="1" Opacity="0.65" TextWrapping="Wrap"
-                                           Text="查看备份历史、完整性状态和恢复预览。" />
+                                           Text="{l10n:Tr BackupsCardDescription}" />
                                 <Button Grid.Row="2" HorizontalAlignment="Left"
-                                        Command="{Binding ShowBackupsCommand}" Content="查看备份" />
+                                        Command="{Binding ShowBackupsCommand}" Content="{l10n:Tr OpenBackups}" />
                             </Grid>
                         </Border>
                         <Border Grid.Column="2" Classes="card">
                             <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
-                                <TextBlock FontSize="16" FontWeight="SemiBold" Text="角色迁移" />
+                                <TextBlock FontSize="16" FontWeight="SemiBold" Text="{l10n:Tr Migration}" />
                                 <TextBlock Grid.Row="1" Opacity="0.65" TextWrapping="Wrap"
-                                           Text="选择源角色和目标角色，预览后安全迁移。" />
+                                           Text="{l10n:Tr MigrationCardDescription}" />
                                 <Button Grid.Row="2" HorizontalAlignment="Left"
-                                        Command="{Binding ShowMigrationCommand}" Content="开始迁移" />
+                                        Command="{Binding ShowMigrationCommand}" Content="{l10n:Tr StartMigration}" />
                             </Grid>
                         </Border>
                     </Grid>
@@ -187,11 +188,11 @@
                     <Border Classes="card">
                         <Grid ColumnDefinitions="*,Auto">
                             <StackPanel Spacing="3">
-                                <TextBlock Classes="section-title" Text="已发现角色" />
+                                <TextBlock Classes="section-title" Text="{l10n:Tr DiscoveredCharacters}" />
                                 <TextBlock Opacity="0.65" Text="{Binding Summary}" />
                             </StackPanel>
                             <Button Grid.Column="1" Command="{Binding ShowSettingsCommand}"
-                                    Content="管理配置源" />
+                                    Content="{l10n:Tr ManageProfiles}" />
                         </Grid>
                     </Border>
                     <ItemsControl ItemsSource="{Binding Characters}">
@@ -201,16 +202,16 @@
                                     <Grid ColumnDefinitions="210,*,170,100" RowDefinitions="Auto,Auto"
                                           ColumnSpacing="14" RowSpacing="8">
                                         <Grid Grid.RowSpan="2" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                                            <TextBox Text="{Binding Alias}" PlaceholderText="角色标记" />
+                                            <TextBox Text="{Binding Alias}" PlaceholderText="{l10n:Tr CharacterTag}" />
                                             <Button Grid.Column="1" Margin="6,0,0,0" Padding="10,5"
-                                                    Command="{Binding SaveAliasCommand}" Content="保存" />
+                                                    Command="{Binding SaveAliasCommand}" Content="{l10n:Tr Save}" />
                                         </Grid>
                                         <TextBlock Grid.Column="1" FontFamily="Cascadia Mono,Consolas"
                                                    FontWeight="SemiBold" Text="{Binding FolderName}" />
                                         <TextBlock Grid.Column="2" VerticalAlignment="Center"
                                                    Text="{Binding LastModified}" />
                                         <Button Grid.Column="3" Grid.RowSpan="2" VerticalAlignment="Center"
-                                                Command="{Binding CreateSnapshotCommand}" Content="创建备份" />
+                                                Command="{Binding CreateSnapshotCommand}" Content="{l10n:Tr CreateBackup}" />
                                         <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
                                                     Orientation="Horizontal" Spacing="14">
                                             <TextBlock Opacity="0.65" Text="{Binding ProfileName}" />
@@ -230,20 +231,20 @@
                 <StackPanel Margin="28" Spacing="16">
                     <Border Classes="card">
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="备份位置" />
+                            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{l10n:Tr BackupLocation}" />
                             <TextBlock Grid.Column="1" VerticalAlignment="Center" Opacity="0.65"
                                        Text="{Binding SnapshotLibraryPath}" TextTrimming="CharacterEllipsis" />
                             <Button Grid.Column="2" Command="{Binding SelectSnapshotLibraryCommand}"
-                                    Content="更改位置" />
+                                    Content="{l10n:Tr ChangeLocation}" />
                         </Grid>
                     </Border>
                     <Grid Margin="0,6,0,0" ColumnDefinitions="*,280">
                         <StackPanel Spacing="3">
-                            <TextBlock Classes="section-title" Text="备份历史" />
+                            <TextBlock Classes="section-title" Text="{l10n:Tr BackupHistory}" />
                             <TextBlock Opacity="0.65" Text="{Binding SnapshotHistorySummary}" />
                         </StackPanel>
                         <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding SnapshotFilter}"
-                                 PlaceholderText="按角色、配置源或状态筛选" />
+                                 PlaceholderText="{l10n:Tr BackupFilterPlaceholder}" />
                     </Grid>
                     <ItemsControl ItemsSource="{Binding Snapshots}">
                         <ItemsControl.ItemTemplate>
@@ -260,7 +261,7 @@
                                         <TextBlock Grid.Column="2" Text="{Binding CreatedAt}" />
                                         <StackPanel Grid.Column="3" Grid.RowSpan="2" Orientation="Horizontal"
                                                     VerticalAlignment="Center" Spacing="6">
-                                            <Button Command="{Binding PreviewCommand}" Content="预览" />
+                                            <Button Command="{Binding PreviewCommand}" Content="{l10n:Tr Preview}" />
                                             <Button Command="{Binding DeleteCommand}"
                                                     Content="{Binding DeleteButtonText}" />
                                         </StackPanel>
@@ -282,10 +283,10 @@
                                 <TextBlock Classes="section-title" Text="{Binding SnapshotPreviewTitle}" />
                                 <Button Grid.Column="1" Command="{Binding ConfirmRestoreCommand}"
                                         IsEnabled="{Binding CanRestorePreview}"
-                                        Content="确认恢复到原角色" />
+                                        Content="{l10n:Tr ConfirmRestore}" />
                             </Grid>
                             <TextBlock Opacity="0.65" TextWrapping="Wrap"
-                                       Text="恢复前会自动创建目标角色恢复点。恢复采用暂存、逐文件校验、事务日志和失败回滚；不会因为 FFXIV 正在运行而禁止操作。" />
+                                       Text="{l10n:Tr RestoreDescription}" />
                             <ItemsControl ItemsSource="{Binding SnapshotPreviewFiles}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:SnapshotFilePreviewViewModel">
@@ -308,11 +309,11 @@
                 <StackPanel Margin="28" Spacing="16">
                     <Border Classes="card">
                         <StackPanel Spacing="16">
-                            <TextBlock Classes="section-title" Text="选择迁移角色" />
+                            <TextBlock Classes="section-title" Text="{l10n:Tr SelectMigrationCharacters}" />
                             <Grid ColumnDefinitions="*,50,*" ColumnSpacing="10">
                                 <ComboBox ItemsSource="{Binding Characters}"
                                           SelectedItem="{Binding SelectedMigrationSource}"
-                                          PlaceholderText="选择源角色">
+                                          PlaceholderText="{l10n:Tr SelectSourceCharacter}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:CharacterRowViewModel">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -326,7 +327,7 @@
                                            VerticalAlignment="Center" FontSize="20" Text="→" />
                                 <ComboBox Grid.Column="2" ItemsSource="{Binding Characters}"
                                           SelectedItem="{Binding SelectedMigrationTarget}"
-                                          PlaceholderText="选择目标角色">
+                                          PlaceholderText="{l10n:Tr SelectTargetCharacter}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:CharacterRowViewModel">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -341,7 +342,7 @@
                     </Border>
                     <Border Classes="card">
                         <StackPanel Spacing="12">
-                            <TextBlock Classes="section-title" Text="迁移范围" />
+                            <TextBlock Classes="section-title" Text="{l10n:Tr MigrationScope}" />
                             <ItemsControl ItemsSource="{Binding MigrationScopes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -356,7 +357,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <TextBlock FontSize="12" Opacity="0.6" TextWrapping="Wrap"
-                                       Text="默认范围包含 UISAVE.DAT（界面状态与场地标点），但不包含隐私、缓存和物品排序。高级的「全部 14 个已知文件」模式会覆盖 ACQ.DAT、ITEMFDR.DAT、ITEMODR.DAT 等文件，仅建议确认确有需要时使用。迁移前仍会创建目标恢复点。" />
+                                       Text="{l10n:Tr MigrationScopeDescription}" />
                         </StackPanel>
                     </Border>
                     <Border Classes="card">
@@ -365,9 +366,9 @@
                                 <TextBlock Classes="section-title" VerticalAlignment="Center"
                                            Text="{Binding MigrationPreviewTitle}" />
                                 <Button Grid.Column="1" Command="{Binding PreviewMigrationCommand}"
-                                        Content="生成迁移预览" />
+                                        Content="{l10n:Tr GenerateMigrationPreview}" />
                                 <Button Grid.Column="2" Command="{Binding ConfirmMigrationCommand}"
-                                        IsEnabled="{Binding CanConfirmMigration}" Content="确认迁移" />
+                                        IsEnabled="{Binding CanConfirmMigration}" Content="{l10n:Tr ConfirmMigration}" />
                             </Grid>
                             <ItemsControl ItemsSource="{Binding MigrationPreviewFiles}">
                                 <ItemsControl.ItemTemplate>
@@ -391,9 +392,9 @@
                 <StackPanel Margin="28" Spacing="16">
                     <Border Classes="card">
                         <StackPanel Spacing="14">
-                            <TextBlock Classes="section-title" Text="配置源" />
+                            <TextBlock Classes="section-title" Text="{l10n:Tr ProfileSource}" />
                             <TextBlock Opacity="0.65" TextWrapping="Wrap"
-                                       Text="配置源是包含 FFXIV_CHR… 角色目录的游戏配置根目录。移除配置源不会删除磁盘文件。" />
+                                       Text="{l10n:Tr ProfileDescription}" />
                             <ItemsControl ItemsSource="{Binding Profiles}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:ProfileRowViewModel">
@@ -405,14 +406,14 @@
                                             <TextBlock Grid.Column="2" Margin="8,0" VerticalAlignment="Center"
                                                        Opacity="0.65" Text="{Binding ConfigRoot}"
                                                        TextTrimming="CharacterEllipsis" />
-                                            <Button Grid.Column="3" Command="{Binding RemoveCommand}" Content="移除"
+                                            <Button Grid.Column="3" Command="{Binding RemoveCommand}" Content="{l10n:Tr Remove}"
                                                     IsVisible="{Binding CanRemove}" />
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <Grid ColumnDefinitions="180,140,*,Auto" ColumnSpacing="10">
-                                <TextBox PlaceholderText="配置源名称" Text="{Binding NewProfileName}" />
+                                <TextBox PlaceholderText="{l10n:Tr ProfileNamePlaceholder}" Text="{Binding NewProfileName}" />
                                 <ComboBox Grid.Column="1" ItemsSource="{Binding RegionOptions}"
                                           SelectedItem="{Binding SelectedRegion}">
                                     <ComboBox.ItemTemplate>
@@ -422,34 +423,34 @@
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
                                 <TextBlock Grid.Column="2" VerticalAlignment="Center" Opacity="0.6"
-                                           Text="选择包含角色文件夹的配置根目录" />
+                                           Text="{l10n:Tr ProfilePathHint}" />
                                 <Button Grid.Column="3" Command="{Binding AddProfileCommand}"
-                                        Content="选择目录并添加" />
+                                        Content="{l10n:Tr SelectAndAddDirectory}" />
                             </Grid>
                         </StackPanel>
                     </Border>
                     <Border Classes="card">
                         <StackPanel Spacing="12">
-                            <TextBlock Classes="section-title" Text="软件设置备份" />
+                            <TextBlock Classes="section-title" Text="{l10n:Tr SoftwareSettingsBackup}" />
                             <TextBlock Opacity="0.65" TextWrapping="Wrap"
-                                       Text="导出角色标记及相关软件设置。换设备后导入会按角色目录 ID 合并标记（同角色以导入值为准），并保留新设备自己的配置源和备份位置；游戏 DAT 文件仍由角色备份单独管理。" />
+                                       Text="{l10n:Tr SoftwareSettingsDescription}" />
                             <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Button Command="{Binding ExportSettingsCommand}" Content="导出软件设置" />
-                                <Button Command="{Binding ImportSettingsCommand}" Content="导入软件设置" />
+                                <Button Command="{Binding ExportSettingsCommand}" Content="{l10n:Tr ExportSoftwareSettings}" />
+                                <Button Command="{Binding ImportSettingsCommand}" Content="{l10n:Tr ImportSoftwareSettings}" />
                             </StackPanel>
                         </StackPanel>
                     </Border>
                     <Border Classes="card">
                         <StackPanel Spacing="12">
-                            <TextBlock Classes="section-title" Text="备份存储" />
+                            <TextBlock Classes="section-title" Text="{l10n:Tr BackupStorage}" />
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                                 <TextBlock VerticalAlignment="Center" Opacity="0.65"
                                            Text="{Binding SnapshotLibraryPath}" TextTrimming="CharacterEllipsis" />
                                 <Button Grid.Column="1" Command="{Binding SelectSnapshotLibraryCommand}"
-                                        Content="选择备份位置" />
+                                        Content="{l10n:Tr SelectBackupLocation}" />
                             </Grid>
                             <TextBlock FontSize="12" Opacity="0.6" TextWrapping="Wrap"
-                                       Text="备份采用开放 ZIP 格式并包含完整性清单。历史记录可直接从备份文件重建。" />
+                                       Text="{l10n:Tr BackupStorageDescription}" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -459,7 +460,7 @@
         <Border Grid.Row="1" Grid.Column="1" Padding="28,10" BorderBrush="#40808080"
                 BorderThickness="0,1,0,0">
             <TextBlock FontSize="12" Opacity="0.65"
-                       Text="只读取配置元数据，不读取聊天日志或解析 DAT 内容。所有覆盖操作均提供预览和恢复路径。" />
+                       Text="{l10n:Tr PrivacyNotice}" />
         </Border>
     </Grid>
 </Window>
