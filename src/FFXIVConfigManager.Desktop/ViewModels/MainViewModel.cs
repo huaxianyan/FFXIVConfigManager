@@ -373,7 +373,7 @@ public partial class MainViewModel(
                 SelectedRegion.Region,
                 normalizedPath,
                 cancellationToken);
-            StatusMessage = $"已添加配置源“{name}”。";
+            StatusMessage = $"已添加配置源「{name}」。";
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -855,12 +855,12 @@ public partial class MainViewModel(
         {
             await settingsService.SetCharacterAliasAsync(profileId, folderName, alias);
             StatusMessage = string.IsNullOrWhiteSpace(alias)
-                ? "已清除角色别名。"
-                : $"已保存角色别名“{alias.Trim()}”。";
+                ? "已清除角色标记。"
+                : $"已保存角色标记「{alias.Trim()}」。";
         }
         catch (Exception exception)
         {
-            StatusMessage = $"保存角色别名失败：{exception.Message}";
+            StatusMessage = $"保存角色标记失败：{exception.Message}";
         }
     }
 

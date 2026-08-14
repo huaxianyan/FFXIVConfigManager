@@ -11,12 +11,12 @@
 
 ## 技术栈
 
-- C# / .NET 10 LTS
-- Avalonia UI 12
-- CommunityToolkit.Mvvm
-- xUnit
+- C# / .NET 10 LTS；
+- Avalonia UI 12；
+- CommunityToolkit.Mvvm；
+- xUnit。
 
-项目采用模块化单体结构。Domain、Application 和通用 Infrastructure 不依赖具体桌面平台，Windows 专有能力位于独立平台项目中。
+项目采用模块化单体结构。Domain、Application 和通用 Infrastructure 不依赖具体桌面平台；Windows 专有能力位于独立平台项目中。
 
 ## 当前进度
 
@@ -27,7 +27,7 @@
 - 使用 `%LOCALAPPDATA%/FFXIVConfigManager/settings.json` 持久化用户设置；
 - 原子写入设置文件，并拒绝读取高于当前程序支持版本的数据；
 - 扫描并验证 `FFXIV_CHR` 角色目录；
-- 为不同配置源下的角色保存独立别名；
+- 为不同配置源下的角色保存独立标记；
 - 识别 14 类已知角色配置文件；
 - 默认忽略聊天日志、`.old` 文件、隐私数据、缓存和未知文件；
 - 创建版本化 `.ffxivconfig.zip` 角色备份；
@@ -47,7 +47,7 @@
 - 支持查看和删除任意历史备份；本机缺少对应角色时仍可查看备份内容；
 - 不因检测到 FFXIV 或 XIVLauncher 正在运行而限制操作；
 - 单实例运行并保存本地诊断日志；
-- 在 Avalonia 桌面界面展示角色、配置完整度和最后修改时间；
+- 在 Avalonia 桌面界面展示角色、已知文件数量和最后修改时间；
 - 为 Domain、Application、设置存储、备份、恢复事务和迁移提供自动化测试。
 
 项目已进入 Windows 手动验收阶段。Linux 和 macOS 尚未进行兼容性验证。

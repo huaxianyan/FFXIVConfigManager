@@ -28,7 +28,7 @@ dotnet publish $project `
     -p:DebugSymbols=false
 
 if ($LASTEXITCODE -ne 0) {
-    throw "dotnet publish failed with exit code $LASTEXITCODE"
+    throw "dotnet publish 失败，退出代码：$LASTEXITCODE"
 }
 
 Get-ChildItem $publishDirectory -Filter "*.pdb" -Recurse | Remove-Item -Force
@@ -38,4 +38,4 @@ if (Test-Path $archivePath) {
 }
 
 Compress-Archive -Path (Join-Path $publishDirectory "*") -DestinationPath $archivePath -CompressionLevel Optimal
-Write-Host "Published: $archivePath"
+Write-Host "发布完成：$archivePath"

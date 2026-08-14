@@ -13,7 +13,7 @@ $ErrorActionPreference = "Stop"
 
 foreach ($path in @($SourceCharacterPath, $TargetCharacterPath)) {
     if (-not (Test-Path $path -PathType Container)) {
-        throw "Character directory does not exist: $path"
+        throw "角色目录不存在：$path"
     }
 }
 
@@ -32,7 +32,7 @@ Get-ChildItem $SourceCharacterPath -File -Filter "*.DAT" |
 Get-ChildItem $TargetCharacterPath -File -Filter "*.DAT" |
     Copy-Item -Destination $targetSandbox
 
-Write-Host "Sandbox created: $SandboxRoot"
-Write-Host "Add this directory as a custom profile in FFXIVConfigManager."
-Write-Host "Source: FFXIV_CHR1111111111111111"
-Write-Host "Target: FFXIV_CHR2222222222222222"
+Write-Host "测试沙盒已创建：$SandboxRoot"
+Write-Host "请将该目录作为自定义配置源添加至 FFXIVConfigManager。"
+Write-Host "源角色：FFXIV_CHR1111111111111111"
+Write-Host "目标角色：FFXIV_CHR2222222222222222"

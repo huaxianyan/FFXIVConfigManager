@@ -153,7 +153,7 @@
                             <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
                                 <TextBlock FontSize="16" FontWeight="SemiBold" Text="角色管理" />
                                 <TextBlock Grid.Row="1" Opacity="0.65" TextWrapping="Wrap"
-                                           Text="查看角色配置完整度、设置标记并创建备份。" />
+                                           Text="查看角色配置文件、设置标记并创建备份。" />
                                 <Button Grid.Row="2" HorizontalAlignment="Left"
                                         Command="{Binding ShowCharactersCommand}" Content="进入角色管理" />
                             </Grid>
@@ -356,7 +356,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <TextBlock FontSize="12" Opacity="0.6" TextWrapping="Wrap"
-                                       Text="默认范围包含 UISAVE.DAT（界面状态与场地标点），但不包含隐私、缓存和物品排序。高级的“全部 14 个已知文件”模式会覆盖 ACQ.DAT、ITEMFDR.DAT、ITEMODR.DAT 等文件，仅建议确认确有需要时使用。迁移前仍会创建目标恢复点。" />
+                                       Text="默认范围包含 UISAVE.DAT（界面状态与场地标点），但不包含隐私、缓存和物品排序。高级的「全部 14 个已知文件」模式会覆盖 ACQ.DAT、ITEMFDR.DAT、ITEMODR.DAT 等文件，仅建议确认确有需要时使用。迁移前仍会创建目标恢复点。" />
                         </StackPanel>
                     </Border>
                     <Border Classes="card">
