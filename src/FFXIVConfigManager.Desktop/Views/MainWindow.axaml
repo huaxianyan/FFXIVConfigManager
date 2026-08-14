@@ -432,7 +432,7 @@
                         <StackPanel Spacing="12">
                             <TextBlock Classes="section-title" Text="软件设置备份" />
                             <TextBlock Opacity="0.65" TextWrapping="Wrap"
-                                       Text="导出角色标记及相关软件设置。换设备后导入会按角色目录 ID 重新匹配标记，并保留新设备自己的配置源和备份位置；游戏 DAT 文件仍由角色备份单独管理。" />
+                                       Text="导出角色标记及相关软件设置。换设备后导入会按角色目录 ID 合并标记（同角色以导入值为准），并保留新设备自己的配置源和备份位置；游戏 DAT 文件仍由角色备份单独管理。" />
                             <StackPanel Orientation="Horizontal" Spacing="10">
                                 <Button Command="{Binding ExportSettingsCommand}" Content="导出软件设置" />
                                 <Button Command="{Binding ImportSettingsCommand}" Content="导入软件设置" />

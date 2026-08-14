@@ -39,7 +39,9 @@ public sealed class SettingsService(ISettingsStore settingsStore)
         UpdateAsync(
             current => current with
             {
-                CharacterAliases = settings.CharacterAliases,
+                CharacterAliases = MergeAliases(
+                    current.CharacterAliases,
+                    settings.CharacterAliases),
                 SnapshotLibraryPath = current.SnapshotLibraryPath,
             },
             cancellationToken);
@@ -102,6 +104,23 @@ public sealed class SettingsService(ISettingsStore settingsStore)
                 return settings with { CharacterAliases = aliases };
             },
             cancellationToken);
+
+    private static IReadOnlyList<CharacterAliasSetting> MergeAliases(
+        IReadOnlyList<CharacterAliasSetting> current,
+        IReadOnlyList<CharacterAliasSetting> imported)
+    {
+        var merged = current.ToList();
+        foreach (var alias in imported)
+        {
+            merged.RemoveAll(existing => string.Equals(
+                existing.CharacterFolder,
+                alias.CharacterFolder,
+                StringComparison.OrdinalIgnoreCase));
+            merged.Add(alias);
+        }
+
+        return merged;
+    }
 
     private async Task UpdateAsync(
         Func<ApplicationSettings, ApplicationSettings> update,

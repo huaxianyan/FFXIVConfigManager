@@ -117,6 +117,8 @@ public partial class MainViewModel(
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     [NotifyCanExecuteChangedFor(nameof(AddProfileCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ExportSettingsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ImportSettingsCommand))]
     [NotifyCanExecuteChangedFor(nameof(SelectSnapshotLibraryCommand))]
     [NotifyCanExecuteChangedFor(nameof(ConfirmRestoreCommand))]
     [NotifyCanExecuteChangedFor(nameof(PreviewMigrationCommand))]
@@ -328,7 +330,7 @@ public partial class MainViewModel(
         {
             var imported = await settingsTransferService.ImportAsync(path, cancellationToken);
             await settingsService.ImportPortableAsync(imported, cancellationToken);
-            StatusMessage = "角色标记已导入；本机配置源和备份位置保持不变。";
+            StatusMessage = "角色标记已合并导入；同角色目录的导入标记优先，本机配置源和备份位置保持不变。";
             await RefreshAsync(cancellationToken);
         }
         catch (Exception exception)
@@ -982,7 +984,6 @@ public sealed partial class CharacterRowViewModel : ObservableObject
         Alias = alias ?? string.Empty;
         LastModified = character.LastModifiedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
         FileSummary = $"{character.ExistingFileCount}/{character.ExpectedFileCount} 个已知文件";
-        Completeness = character.Completeness * 100;
     }
 
     public GameProfile Profile => _profile;
@@ -998,8 +999,6 @@ public sealed partial class CharacterRowViewModel : ObservableObject
     public string LastModified { get; }
 
     public string FileSummary { get; }
-
-    public double Completeness { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DisplayName))]
