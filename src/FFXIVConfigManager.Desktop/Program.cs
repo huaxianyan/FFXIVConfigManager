@@ -1,6 +1,7 @@
 using Avalonia;
 using FFXIVConfigManager.Infrastructure.Logging;
 using FFXIVConfigManager.Infrastructure.Settings;
+using FFXIVConfigManager.Platform.Windows.Updates;
 
 namespace FFXIVConfigManager.Desktop;
 
@@ -9,6 +10,18 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        if (OperatingSystem.IsWindows() &&
+            WindowsSelfUpdate.TryRunUpdater(args, out var updaterExitCode))
+        {
+            Environment.ExitCode = updaterExitCode;
+            return;
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            args = WindowsSelfUpdate.ScheduleCleanupAndRemoveArguments(args);
+        }
+
         var logger = new FileDiagnosticLogger(
             Path.Combine(ApplicationDataPaths.GetDefaultDirectory(), "logs"));
         logger.Initialize();

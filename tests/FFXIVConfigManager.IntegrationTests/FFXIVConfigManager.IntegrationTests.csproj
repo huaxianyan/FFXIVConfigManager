@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\src\FFXIVConfigManager.Domain\FFXIVConfigManager.Domain.csproj" />
     <ProjectReference Include="..\..\src\FFXIVConfigManager.Application\FFXIVConfigManager.Application.csproj" />
     <ProjectReference Include="..\..\src\FFXIVConfigManager.Infrastructure\FFXIVConfigManager.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\FFXIVConfigManager.Platform.Windows\FFXIVConfigManager.Platform.Windows.csproj" />
   </ItemGroup>
 
 </Project>

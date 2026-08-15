@@ -11,6 +11,7 @@ using FFXIVConfigManager.Desktop.Views;
 using FFXIVConfigManager.Infrastructure.Discovery;
 using FFXIVConfigManager.Infrastructure.Settings;
 using FFXIVConfigManager.Infrastructure.Snapshots;
+using FFXIVConfigManager.Infrastructure.Updates;
 using FFXIVConfigManager.Platform.Windows.Discovery;
 
 namespace FFXIVConfigManager.Desktop;
@@ -72,6 +73,17 @@ public partial class App : Avalonia.Application
                 () => window,
                 settingsBackupService,
                 text);
+            var currentVersion = typeof(App).Assembly.GetName().Version
+                ?? new Version(0, 0, 0);
+            var updateHttpClient = new HttpClient
+            {
+                Timeout = TimeSpan.FromMinutes(15),
+            };
+            var updateService = new GitHubApplicationUpdateService(
+                updateHttpClient,
+                currentVersion,
+                Path.Combine(ApplicationDataPaths.GetDefaultDirectory(), "updates"));
+            var updateInstaller = new WindowsApplicationUpdateInstaller(desktop);
             var viewModel = new MainViewModel(
                 new ScanProfilesUseCase(configuredDiscovery, scanner),
                 settingsService,
@@ -83,6 +95,8 @@ public partial class App : Avalonia.Application
                 settingsBackupService,
                 characterBackupDialog,
                 settingsBackupDialog,
+                updateService,
+                updateInstaller,
                 folderPicker,
                 text);
             window = new MainWindow
@@ -92,6 +106,7 @@ public partial class App : Avalonia.Application
             desktop.MainWindow = window;
 
             _ = viewModel.RefreshAsync();
+            _ = viewModel.CheckForUpdatesAsync();
         }
 
         base.OnFrameworkInitializationCompleted();

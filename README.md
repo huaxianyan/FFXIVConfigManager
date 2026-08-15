@@ -45,6 +45,7 @@
 - 默认迁移 `UISAVE.DAT` 中的界面状态与场地标点，并提供全部 14 个已知文件高级模式。
 - 迁移时同时保存迁移源备份与目标操作前恢复点。
 - 在备份目录中维护单份软件设置备份，可按角色标记或自定义配置源选择备份和恢复范围。
+- 启动时或按需检查 GitHub Release，下载并校验新版本后从任意可写的解压目录事务性更新和重启。
 - 支持查看和删除任意历史备份，本机缺少对应角色时仍可查看备份内容。
 - 不因检测到 FFXIV 或 XIVLauncher 正在运行而限制操作。
 - 单实例运行并保存本地诊断日志。
@@ -56,7 +57,7 @@
 
 ## 开发
 
-需要安装 .NET 10 SDK，本地化资源结构和文案规则见 [`docs/localization.md`](docs/localization.md)。
+需要安装 .NET 10 SDK。本地化资源结构和文案规则见 [`docs/localization.md`](docs/localization.md)，自动更新的校验、替换和回滚流程见 [`docs/automatic-update.md`](docs/automatic-update.md)。
 
 ```powershell
 dotnet restore

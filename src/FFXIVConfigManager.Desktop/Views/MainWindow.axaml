@@ -403,6 +403,25 @@
                     </Border>
                     <Border Classes="card">
                         <StackPanel Spacing="12">
+                            <TextBlock Classes="section-title" Text="{l10n:Tr ApplicationUpdate}" />
+                            <TextBlock FontWeight="SemiBold" Text="{Binding CurrentVersionText}" />
+                            <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding UpdateStatusText}" />
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Command="{Binding CheckForUpdatesCommand}"
+                                        Content="{l10n:Tr CheckForUpdates}" />
+                                <Button Command="{Binding InstallUpdateCommand}"
+                                        IsVisible="{Binding IsUpdateAvailable}"
+                                        Content="{l10n:Tr DownloadAndInstallUpdate}" />
+                                <ProgressBar Width="100" IsIndeterminate="True"
+                                             IsVisible="{Binding IsUpdateBusy}" />
+                            </StackPanel>
+                            <TextBlock FontSize="12" Opacity="0.6" TextWrapping="Wrap"
+                                       IsVisible="{Binding !IsAutomaticUpdateSupported}"
+                                       Text="{l10n:Tr AutomaticUpdatePublishedOnly}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <StackPanel Spacing="12">
                             <TextBlock Classes="section-title" Text="{l10n:Tr SoftwareSettingsBackup}" />
                             <TextBlock Opacity="0.65" TextWrapping="Wrap"
                                        Text="{l10n:Tr SoftwareSettingsDescription}" />

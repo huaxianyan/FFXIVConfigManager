@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using FFXIVConfigManager.Application.Discovery;
 using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
+using FFXIVConfigManager.Application.Updates;
 using FFXIVConfigManager.Desktop.Localization;
 using FFXIVConfigManager.Desktop.Services;
 using FFXIVConfigManager.Domain.Characters;
@@ -24,6 +25,8 @@ public partial class MainViewModel(
     ISettingsBackupService settingsBackupService,
     ICharacterBackupDialogService characterBackupDialog,
     ISettingsBackupDialogService settingsBackupDialog,
+    IApplicationUpdateService applicationUpdateService,
+    IApplicationUpdateInstaller applicationUpdateInstaller,
     IFolderPickerService folderPicker,
     ITextLocalizer text) : ViewModelBase
 {
@@ -31,6 +34,7 @@ public partial class MainViewModel(
     private readonly List<SnapshotLibraryEntry> _snapshotEntries = [];
     private readonly Dictionary<Guid, GameProfile> _currentProfiles = [];
     private readonly Dictionary<(Guid ProfileId, string Folder), CharacterConfiguration> _currentCharacters = [];
+    private ApplicationRelease? _availableRelease;
     private CharacterRowViewModel? _previewedMigrationSource;
     private CharacterRowViewModel? _previewedMigrationTarget;
     private ConfigScope _previewedMigrationScopes;
@@ -145,6 +149,24 @@ public partial class MainViewModel(
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RestoreSettingsCommand))]
     public partial bool CanRestoreSettingsBackup { get; private set; }
+
+    public string CurrentVersionText { get; } = text.Format(
+        "CurrentVersionFormat",
+        typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "未知");
+
+    [ObservableProperty]
+    public partial string UpdateStatusText { get; private set; } = text["UpdateNotChecked"];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(InstallUpdateCommand))]
+    public partial bool IsUpdateBusy { get; private set; }
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(InstallUpdateCommand))]
+    public partial bool IsUpdateAvailable { get; private set; }
+
+    public bool IsAutomaticUpdateSupported => applicationUpdateInstaller.IsSupported;
 
     [ObservableProperty]
     public partial string SnapshotFilter { get; set; } = string.Empty;
@@ -692,6 +714,77 @@ public partial class MainViewModel(
     }
 
     private bool CanRestoreSettings() => CanRestoreSettingsBackup && !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanCheckForUpdates))]
+    public async Task CheckForUpdatesAsync(CancellationToken cancellationToken = default)
+    {
+        IsUpdateBusy = true;
+        UpdateStatusText = text["CheckingForUpdates"];
+        try
+        {
+            var status = await applicationUpdateService.CheckAsync(cancellationToken);
+            _availableRelease = status.IsUpdateAvailable ? status.LatestRelease : null;
+            IsUpdateAvailable = _availableRelease is not null;
+            UpdateStatusText = _availableRelease is null
+                ? text["AlreadyLatestVersion"]
+                : text.Format("UpdateAvailableFormat", _availableRelease.Version.ToString(3));
+        }
+        catch (OperationCanceledException)
+        {
+            UpdateStatusText = text["UpdateCheckCanceled"];
+        }
+        catch (Exception exception)
+        {
+            _availableRelease = null;
+            IsUpdateAvailable = false;
+            UpdateStatusText = text.Format("UpdateCheckFailedFormat", exception.Message);
+        }
+        finally
+        {
+            IsUpdateBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanInstallUpdate))]
+    private async Task InstallUpdateAsync(CancellationToken cancellationToken)
+    {
+        if (_availableRelease is null)
+        {
+            return;
+        }
+
+        IsUpdateBusy = true;
+        UpdateStatusText = text.Format(
+            "DownloadingUpdateFormat",
+            _availableRelease.Version.ToString(3));
+        try
+        {
+            var prepared = await applicationUpdateService.PrepareAsync(
+                _availableRelease,
+                cancellationToken);
+            UpdateStatusText = text["ApplyingUpdate"];
+            applicationUpdateInstaller.Launch(prepared);
+        }
+        catch (OperationCanceledException)
+        {
+            UpdateStatusText = text["UpdateCanceled"];
+        }
+        catch (Exception exception)
+        {
+            UpdateStatusText = text.Format("UpdateFailedFormat", exception.Message);
+        }
+        finally
+        {
+            IsUpdateBusy = false;
+        }
+    }
+
+    private bool CanCheckForUpdates() => !IsUpdateBusy;
+
+    private bool CanInstallUpdate() =>
+        !IsUpdateBusy &&
+        IsUpdateAvailable &&
+        applicationUpdateInstaller.IsSupported;
 
     private async Task<string?> EnsureBackupLibraryAsync(CancellationToken cancellationToken)
     {

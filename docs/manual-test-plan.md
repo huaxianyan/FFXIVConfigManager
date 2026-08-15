@@ -103,13 +103,28 @@ artifacts/FFXIVConfigManager-win-x64.zip
 - 再次创建软件设置备份，确认旧文件被原子覆盖且没有产生历史版本。
 - 损坏设置备份文件后重新扫描，确认界面显示损坏状态并禁止恢复。
 
-## 9. 诊断信息
+## 9. 自动更新
+
+需要存在高于测试程序版本的正式 GitHub Release：
+
+- 把旧版本分别解压到普通目录、含空格的深层目录，确认启动后能够发现新版本。
+- 点击「下载并安装」，确认下载期间界面显示忙碌状态。
+- 确认程序自动关闭、原位置的 EXE 被替换并自动重启，新版本号正确。
+- 确认角色标记、自定义配置源和备份位置保持不变。
+- 确认安装目录中没有 `.update` 或 `.update-backup` 残留文件。
+- 临时移除安装目录写权限，确认程序在关闭前报告失败且旧版本仍可运行。
+- 使用错误的 `.sha256` 或损坏 ZIP 测试源，确认程序拒绝安装且旧版本文件不变。
+- 在替换提交阶段注入失败，确认恢复副本自动回滚。
+
+## 10. 诊断信息
 
 如果发生异常，保留：
 
 ```text
 %LOCALAPPDATA%\FFXIVConfigManager\settings.json
 %LOCALAPPDATA%\FFXIVConfigManager\logs\
+%LOCALAPPDATA%\FFXIVConfigManager\updates\
+%TEMP%\FFXIVConfigManager-update-error.log
 ```
 
 同时记录：
