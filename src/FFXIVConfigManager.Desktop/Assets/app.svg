@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">FFXIVConfigManager 图标</title>
+  <desc id="description">蓝色圆角背景上的圆形同步箭头</desc>
+  <defs>
+    <linearGradient id="background" x1="150" y1="100" x2="870" y2="930" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2878D7" />
+      <stop offset="1" stop-color="#0B3978" />
+    </linearGradient>
+    <linearGradient id="arrow" x1="250" y1="250" x2="770" y2="770" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E3F5FF" />
+      <stop offset="1" stop-color="#8ED5FF" />
+    </linearGradient>
+  </defs>
+
+  <rect x="48" y="48" width="928" height="928" rx="220" fill="url(#background)" />
+
+  <g fill="none" stroke="url(#arrow)" stroke-width="112" stroke-linecap="round">
+    <path d="M 255 438 A 286 286 0 0 1 759 374" />
+    <path d="M 769 586 A 286 286 0 0 1 265 650" />
+  </g>
+
+  <path d="M 820 355 L 688 316 L 744 451 Z" fill="#93D8FF" />
+  <path d="M 204 669 L 336 708 L 280 573 Z" fill="#DDF3FF" />
+</svg>
