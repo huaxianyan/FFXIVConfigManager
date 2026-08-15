@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FFXIVConfigManager.Desktop.ViewModels"
+             xmlns:l10n="using:FFXIVConfigManager.Desktop.Localization"
+             x:Class="FFXIVConfigManager.Desktop.Views.AppearanceBackupsView"
+             x:DataType="vm:AppearanceBackupsViewModel">
+    <Grid Margin="28" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Opacity="0.65" Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+            <ProgressBar Grid.Column="1" Width="100" IsIndeterminate="True"
+                         IsVisible="{Binding IsBusy}" VerticalAlignment="Center" />
+        </Grid>
+
+        <Border Grid.Row="1" Padding="14" CornerRadius="10" BorderThickness="1"
+                BorderBrush="#40808080" Background="#0A808080">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <TextBlock VerticalAlignment="Center" FontWeight="SemiBold"
+                               Text="{l10n:Tr AppearanceCurrentSlots}" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}"
+                              SelectedItem="{Binding SelectedSourceProfile}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AppearanceProfileOptionViewModel">
+                                <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding SourceSlots}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="8" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AppearanceSourceSlotViewModel">
+                                <Border Width="270" Padding="10" CornerRadius="7" BorderThickness="1"
+                                        BorderBrush="#30808080">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding SlotText}" />
+                                        <TextBlock Grid.Row="1" FontSize="12" Opacity="0.7"
+                                                   Text="{Binding Summary}" TextWrapping="Wrap" MaxLines="2" />
+                                        <Button Grid.Row="2" HorizontalAlignment="Left"
+                                                Command="{Binding CreateBackupCommand}"
+                                                Content="{l10n:Tr BackupThisAppearance}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="10">
+            <Grid ColumnDefinitions="*,160,140,240" ColumnSpacing="8">
+                <TextBlock VerticalAlignment="Center" FontSize="18" FontWeight="SemiBold"
+                           Text="{l10n:Tr AppearanceBackups}" />
+                <ComboBox Grid.Column="1" ItemsSource="{Binding RaceFilters}"
+                          SelectedItem="{Binding SelectedRaceFilter}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AppearanceRaceFilterViewModel">
+                            <TextBlock Text="{Binding DisplayName}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <ComboBox Grid.Column="2" ItemsSource="{Binding GenderFilters}"
+                          SelectedItem="{Binding SelectedGenderFilter}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AppearanceGenderFilterViewModel">
+                            <TextBlock Text="{Binding DisplayName}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBox Grid.Column="3" Text="{Binding SearchText}"
+                         PlaceholderText="{l10n:Tr SearchAppearanceComment}" />
+            </Grid>
+
+            <ListBox Grid.Row="1" ItemsSource="{Binding Backups}"
+                     SelectedItem="{Binding SelectedBackup}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AppearanceBackupItemViewModel">
+                        <Grid Margin="6" ColumnDefinitions="130,90,*,140,100" ColumnSpacing="10">
+                            <TextBlock FontWeight="SemiBold" Text="{Binding RaceText}" />
+                            <TextBlock Grid.Column="1" Text="{Binding GenderText}" />
+                            <TextBlock Grid.Column="2" Text="{Binding Comment}"
+                                       TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Details}" />
+                            <TextBlock Grid.Column="3" Opacity="0.65" Text="{Binding CreatedAt}" />
+                            <TextBlock Grid.Column="4" Opacity="0.65" Text="{Binding Reason}" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+
+        <Border Grid.Row="3" Padding="14" CornerRadius="10" BorderThickness="1"
+                BorderBrush="#40808080" Background="#0A808080">
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,120,Auto,Auto"
+                  ColumnSpacing="10" RowSpacing="8">
+                <TextBlock VerticalAlignment="Center" FontWeight="SemiBold"
+                           Text="{l10n:Tr RestoreAppearanceTo}" />
+                <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}"
+                          SelectedItem="{Binding SelectedTargetProfile}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AppearanceProfileOptionViewModel">
+                            <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <ComboBox Grid.Column="2" ItemsSource="{Binding TargetSlots}"
+                          SelectedItem="{Binding SelectedTargetSlot}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AppearanceTargetSlotViewModel">
+                            <TextBlock Text="{Binding DisplayName}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Grid.Column="3" Command="{Binding RestoreCommand}"
+                        Content="{Binding RestoreButtonText}" />
+                <Button Grid.Column="4" Command="{Binding DeleteCommand}"
+                        Content="{Binding DeleteButtonText}" />
+                <TextBlock Grid.Row="1" Grid.ColumnSpan="5" Opacity="0.7"
+                           Text="{Binding TargetPreview}" TextWrapping="Wrap" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

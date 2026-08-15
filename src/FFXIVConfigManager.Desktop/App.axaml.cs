@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using FFXIVConfigManager.Application.Appearances;
 using FFXIVConfigManager.Application.Discovery;
 using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
@@ -8,6 +9,7 @@ using FFXIVConfigManager.Desktop.Localization;
 using FFXIVConfigManager.Desktop.Services;
 using FFXIVConfigManager.Desktop.ViewModels;
 using FFXIVConfigManager.Desktop.Views;
+using FFXIVConfigManager.Infrastructure.Appearances;
 using FFXIVConfigManager.Infrastructure.Discovery;
 using FFXIVConfigManager.Infrastructure.Settings;
 using FFXIVConfigManager.Infrastructure.Snapshots;
@@ -59,6 +61,8 @@ public partial class App : Avalonia.Application
             var migrateCharacter = new MigrateCharacterConfigurationUseCase(
                 createSnapshot,
                 transactionalRestorer);
+            IAppearanceBackupService appearanceBackupService =
+                new ZipAppearanceBackupService();
 
             MainWindow? window = null;
             var text = ResourceTextLocalizer.Instance;
@@ -94,6 +98,7 @@ public partial class App : Avalonia.Application
                 transactionalRestorer,
                 settingsBackupService,
                 characterBackupDialog,
+                appearanceBackupService,
                 settingsBackupDialog,
                 updateService,
                 updateInstaller,

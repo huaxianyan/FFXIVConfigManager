@@ -48,6 +48,9 @@
   <data name="CharactersSubtitle" xml:space="preserve">
     <value>管理角色标记并创建配置备份</value>
   </data>
+  <data name="AppearancesSubtitle" xml:space="preserve">
+    <value>备份、筛选并恢复角色形象数据</value>
+  </data>
   <data name="BackupsSubtitle" xml:space="preserve">
     <value>校验、查看并恢复历史备份</value>
   </data>
@@ -65,6 +68,9 @@
   </data>
   <data name="ValidBackups" xml:space="preserve">
     <value>有效备份</value>
+  </data>
+  <data name="CharacterDataBackups" xml:space="preserve">
+    <value>角色数据备份</value>
   </data>
   <data name="CorruptedBackups" xml:space="preserve">
     <value>损坏备份</value>
@@ -99,6 +105,12 @@
   <data name="OpenBackups" xml:space="preserve">
     <value>查看备份</value>
   </data>
+  <data name="AppearancesCardDescription" xml:space="preserve">
+    <value>备份角色形象，按种族、性别和备注筛选，并恢复到指定栏位。</value>
+  </data>
+  <data name="OpenAppearances" xml:space="preserve">
+    <value>管理角色形象</value>
+  </data>
   <data name="MigrationCardDescription" xml:space="preserve">
     <value>选择源角色和目标角色，预览后安全迁移。</value>
   </data>
@@ -107,6 +119,12 @@
   </data>
   <data name="ManageProfiles" xml:space="preserve">
     <value>管理配置源</value>
+  </data>
+  <data name="ShowOnlyTaggedCharacters" xml:space="preserve">
+    <value>只显示有角色标记</value>
+  </data>
+  <data name="SaveCharacterFilterFailedFormat" xml:space="preserve">
+    <value>保存角色筛选状态失败：{0}</value>
   </data>
   <data name="CharacterTag" xml:space="preserve">
     <value>角色标记</value>
@@ -178,7 +196,7 @@
     <value>备份采用开放的 ZIP 格式并包含完整性清单，历史记录可直接从备份文件重建。</value>
   </data>
   <data name="PrivacyNotice" xml:space="preserve">
-    <value>只读取配置元数据，不读取聊天日志或解析 DAT 内容，所有覆盖操作均提供预览和恢复路径。</value>
+    <value>不读取聊天日志；角色形象文件只解析种族、性别和备注等识别信息，所有覆盖操作均提供预览和恢复路径。</value>
   </data>
   <data name="ScopeHud" xml:space="preserve">
     <value>HUD 与界面</value>
@@ -557,5 +575,143 @@
   </data>
   <data name="UpdateFailedFormat" xml:space="preserve">
     <value>自动更新失败，当前版本未修改：{0}</value>
+  </data>
+  <data name="CharacterAppearances" xml:space="preserve">
+    <value>角色形象</value>
+  </data>
+  <data name="AppearanceManagerTitle" xml:space="preserve">
+    <value>角色形象备份与恢复</value>
+  </data>
+  <data name="AppearanceCurrentSlots" xml:space="preserve">
+    <value>当前游戏栏位</value>
+  </data>
+  <data name="AppearanceBackups" xml:space="preserve">
+    <value>角色形象备份</value>
+  </data>
+  <data name="BackupThisAppearance" xml:space="preserve">
+    <value>备份此形象</value>
+  </data>
+  <data name="AppearanceSlotFormat" xml:space="preserve">
+    <value>栏位 {0:D2}</value>
+  </data>
+  <data name="AllRaces" xml:space="preserve">
+    <value>全部种族</value>
+  </data>
+  <data name="AllGenders" xml:space="preserve">
+    <value>全部性别</value>
+  </data>
+  <data name="GenderMale" xml:space="preserve">
+    <value>男性</value>
+  </data>
+  <data name="GenderFemale" xml:space="preserve">
+    <value>女性</value>
+  </data>
+  <data name="RaceHyur" xml:space="preserve">
+    <value>人族</value>
+  </data>
+  <data name="RaceElezen" xml:space="preserve">
+    <value>精灵族</value>
+  </data>
+  <data name="RaceLalafell" xml:space="preserve">
+    <value>拉拉菲尔族</value>
+  </data>
+  <data name="RaceMiqote" xml:space="preserve">
+    <value>猫魅族</value>
+  </data>
+  <data name="RaceRoegadyn" xml:space="preserve">
+    <value>鲁加族</value>
+  </data>
+  <data name="RaceAuRa" xml:space="preserve">
+    <value>敖龙族</value>
+  </data>
+  <data name="RaceHrothgar" xml:space="preserve">
+    <value>硌狮族</value>
+  </data>
+  <data name="RaceViera" xml:space="preserve">
+    <value>维埃拉族</value>
+  </data>
+  <data name="SearchAppearanceComment" xml:space="preserve">
+    <value>搜索备注</value>
+  </data>
+  <data name="RestoreAppearanceTo" xml:space="preserve">
+    <value>恢复到</value>
+  </data>
+  <data name="RestoreToSelectedSlot" xml:space="preserve">
+    <value>恢复到所选栏位</value>
+  </data>
+  <data name="ConfirmOverwriteAppearance" xml:space="preserve">
+    <value>确认覆盖当前栏位</value>
+  </data>
+  <data name="DeleteAppearanceBackup" xml:space="preserve">
+    <value>删除备份</value>
+  </data>
+  <data name="ConfirmDeleteAppearanceBackup" xml:space="preserve">
+    <value>确认删除备份</value>
+  </data>
+  <data name="LoadingAppearanceData" xml:space="preserve">
+    <value>正在读取角色形象数据……</value>
+  </data>
+  <data name="AppearanceBackupCountFormat" xml:space="preserve">
+    <value>已读取 {0} 个角色形象备份。</value>
+  </data>
+  <data name="LoadAppearanceDataFailedFormat" xml:space="preserve">
+    <value>读取角色形象数据失败：{0}</value>
+  </data>
+  <data name="NoAppearanceProfile" xml:space="preserve">
+    <value>没有可用的配置源，无法管理角色形象。</value>
+  </data>
+  <data name="AppearanceRequiresLibrary" xml:space="preserve">
+    <value>需要先选择备份位置。</value>
+  </data>
+  <data name="SelectAppearanceTarget" xml:space="preserve">
+    <value>请选择目标配置源和栏位。</value>
+  </data>
+  <data name="AppearanceTargetEmpty" xml:space="preserve">
+    <value>目标栏位为空，恢复时不会覆盖现有数据。</value>
+  </data>
+  <data name="AppearanceTargetOccupiedFormat" xml:space="preserve">
+    <value>目标栏位已有数据：{0}</value>
+  </data>
+  <data name="AppearanceTargetUnreadableFormat" xml:space="preserve">
+    <value>目标栏位存在文件，但无法解析识别信息：{0}</value>
+  </data>
+  <data name="OverwriteAppearanceWarning" xml:space="preserve">
+    <value>目标栏位已有数据。请核对预览信息，再次点击按钮确认覆盖；覆盖前会自动创建恢复点。</value>
+  </data>
+  <data name="AppearanceRestoredFormat" xml:space="preserve">
+    <value>角色形象已恢复到栏位 {0:D2}。</value>
+  </data>
+  <data name="AppearanceRestoredWithRecoveryFormat" xml:space="preserve">
+    <value>角色形象已恢复到栏位 {0:D2}，原数据已保存为覆盖前恢复点。</value>
+  </data>
+  <data name="AppearanceRestoreCanceled" xml:space="preserve">
+    <value>角色形象恢复已取消。</value>
+  </data>
+  <data name="AppearanceRestoreFailedFormat" xml:space="preserve">
+    <value>恢复角色形象失败：{0}</value>
+  </data>
+  <data name="AppearanceBackupCreated" xml:space="preserve">
+    <value>角色形象备份已创建。</value>
+  </data>
+  <data name="AppearanceBackupCreateFailedFormat" xml:space="preserve">
+    <value>创建角色形象备份失败：{0}</value>
+  </data>
+  <data name="AppearanceBackupDeleted" xml:space="preserve">
+    <value>角色形象备份已删除。</value>
+  </data>
+  <data name="AppearanceBackupDeleteFailedFormat" xml:space="preserve">
+    <value>删除角色形象备份失败：{0}</value>
+  </data>
+  <data name="NoAppearanceComment" xml:space="preserve">
+    <value>无备注</value>
+  </data>
+  <data name="UnknownAppearance" xml:space="preserve">
+    <value>无法识别</value>
+  </data>
+  <data name="AppearanceReasonManual" xml:space="preserve">
+    <value>手动备份</value>
+  </data>
+  <data name="AppearanceReasonBeforeRestore" xml:space="preserve">
+    <value>覆盖前恢复点</value>
   </data>
 </root>

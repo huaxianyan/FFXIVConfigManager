@@ -22,7 +22,10 @@ public sealed class JsonSettingsStoreTests : IDisposable
         var expected = new ApplicationSettings(
             ApplicationSettings.CurrentSchemaVersion,
             [profile],
-            [new CharacterAliasSetting(profile.Id, "FFXIV_CHR0000000000000001", "角色")]);
+            [new CharacterAliasSetting(profile.Id, "FFXIV_CHR0000000000000001", "角色")])
+        {
+            ShowOnlyTaggedCharacters = true,
+        };
         var store = new JsonSettingsStore(path);
 
         await store.SaveAsync(expected);
@@ -31,6 +34,7 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.Equal(expected.SchemaVersion, actual.SchemaVersion);
         Assert.Equal(expected.CustomProfiles, actual.CustomProfiles);
         Assert.Equal(expected.CharacterAliases, actual.CharacterAliases);
+        Assert.True(actual.ShowOnlyTaggedCharacters);
         Assert.Single(Directory.GetFiles(_root));
         var json = await File.ReadAllTextAsync(path);
         Assert.Contains("\"China\"", json, StringComparison.Ordinal);

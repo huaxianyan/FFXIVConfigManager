@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:FFXIVConfigManager.Desktop.ViewModels"
+        xmlns:views="using:FFXIVConfigManager.Desktop.Views"
         xmlns:l10n="using:FFXIVConfigManager.Desktop.Localization"
         x:Class="FFXIVConfigManager.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
@@ -64,6 +65,9 @@
                             Command="{Binding ShowDashboardCommand}" Content="{l10n:Tr Dashboard}" />
                     <Button Classes.nav="True" Classes.active="{Binding IsCharactersPage}"
                             Command="{Binding ShowCharactersCommand}" Content="{l10n:Tr Characters}" />
+                    <Button Classes.nav="True" Classes.active="{Binding IsAppearancesPage}"
+                            Command="{Binding ManageAppearancesCommand}"
+                            Content="{l10n:Tr CharacterAppearances}" />
                     <Button Classes.nav="True" Classes.active="{Binding IsBackupsPage}"
                             Command="{Binding ShowBackupsCommand}" Content="{l10n:Tr Backups}" />
                     <Button Classes.nav="True" Classes.active="{Binding IsMigrationPage}"
@@ -116,14 +120,14 @@
                         </Border>
                         <Border Grid.Column="2" Classes="card">
                             <StackPanel Spacing="5">
-                                <TextBlock Opacity="0.65" Text="{l10n:Tr ValidBackups}" />
+                                <TextBlock Opacity="0.65" Text="{l10n:Tr CharacterDataBackups}" />
                                 <TextBlock Classes="stat-value" Text="{Binding HealthyBackupCount}" />
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="3" Classes="card">
                             <StackPanel Spacing="5">
-                                <TextBlock Opacity="0.65" Text="{l10n:Tr CorruptedBackups}" />
-                                <TextBlock Classes="stat-value" Text="{Binding CorruptedBackupCount}" />
+                                <TextBlock Opacity="0.65" Text="{l10n:Tr AppearanceBackups}" />
+                                <TextBlock Classes="stat-value" Text="{Binding AppearanceBackupCount}" />
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -161,11 +165,13 @@
                         </Border>
                         <Border Grid.Column="1" Classes="card">
                             <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
-                                <TextBlock FontSize="16" FontWeight="SemiBold" Text="{l10n:Tr Backups}" />
+                                <TextBlock FontSize="16" FontWeight="SemiBold"
+                                           Text="{l10n:Tr CharacterAppearances}" />
                                 <TextBlock Grid.Row="1" Opacity="0.65" TextWrapping="Wrap"
-                                           Text="{l10n:Tr BackupsCardDescription}" />
+                                           Text="{l10n:Tr AppearancesCardDescription}" />
                                 <Button Grid.Row="2" HorizontalAlignment="Left"
-                                        Command="{Binding ShowBackupsCommand}" Content="{l10n:Tr OpenBackups}" />
+                                        Command="{Binding ManageAppearancesCommand}"
+                                        Content="{l10n:Tr OpenAppearances}" />
                             </Grid>
                         </Border>
                         <Border Grid.Column="2" Classes="card">
@@ -191,11 +197,16 @@
                                 <TextBlock Classes="section-title" Text="{l10n:Tr DiscoveredCharacters}" />
                                 <TextBlock Opacity="0.65" Text="{Binding Summary}" />
                             </StackPanel>
-                            <Button Grid.Column="1" Command="{Binding ShowSettingsCommand}"
-                                    Content="{l10n:Tr ManageProfiles}" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14"
+                                        VerticalAlignment="Center">
+                                <CheckBox IsChecked="{Binding ShowOnlyTaggedCharacters}"
+                                          Content="{l10n:Tr ShowOnlyTaggedCharacters}" />
+                                <Button Command="{Binding ShowSettingsCommand}"
+                                        Content="{l10n:Tr ManageProfiles}" />
+                            </StackPanel>
                         </Grid>
                     </Border>
-                    <ItemsControl ItemsSource="{Binding Characters}">
+                    <ItemsControl ItemsSource="{Binding VisibleCharacters}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:CharacterRowViewModel">
                                 <Border Classes="card" Margin="0,0,0,8" Padding="18,14">
@@ -232,6 +243,11 @@
                     </ItemsControl>
                 </StackPanel>
             </ScrollViewer>
+
+            <!-- 角色形象 -->
+            <Panel Grid.Row="1" IsVisible="{Binding IsAppearancesPage}">
+                <views:AppearanceBackupsView DataContext="{Binding AppearanceManager}" />
+            </Panel>
 
             <!-- 备份与恢复 -->
             <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled"

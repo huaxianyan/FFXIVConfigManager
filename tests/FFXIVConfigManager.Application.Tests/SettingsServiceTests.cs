@@ -82,6 +82,17 @@ public sealed class SettingsServiceTests
     }
 
     [Fact]
+    public async Task SetShowOnlyTaggedCharacters_PersistsFilterState()
+    {
+        var store = new MemorySettingsStore();
+        var service = new SettingsService(store);
+
+        await service.SetShowOnlyTaggedCharactersAsync(true);
+
+        Assert.True((await service.GetAsync()).ShowOnlyTaggedCharacters);
+    }
+
+    [Fact]
     public async Task SetSnapshotLibraryPath_PersistsNormalizedPath()
     {
         var store = new MemorySettingsStore();

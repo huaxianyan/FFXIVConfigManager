@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FFXIVConfigManager.Application.Appearances;
 using FFXIVConfigManager.Application.Discovery;
 using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
@@ -24,6 +25,7 @@ public partial class MainViewModel(
     IIncompleteRestoreRecovery incompleteRestoreRecovery,
     ISettingsBackupService settingsBackupService,
     ICharacterBackupDialogService characterBackupDialog,
+    IAppearanceBackupService appearanceBackupService,
     ISettingsBackupDialogService settingsBackupDialog,
     IApplicationUpdateService applicationUpdateService,
     IApplicationUpdateInstaller applicationUpdateInstaller,
@@ -38,8 +40,11 @@ public partial class MainViewModel(
     private CharacterRowViewModel? _previewedMigrationSource;
     private CharacterRowViewModel? _previewedMigrationTarget;
     private ConfigScope _previewedMigrationScopes;
+    private bool _isApplyingSettings;
 
     public ObservableCollection<CharacterRowViewModel> Characters { get; } = [];
+
+    public ObservableCollection<CharacterRowViewModel> VisibleCharacters { get; } = [];
 
     public ObservableCollection<ProfileRowViewModel> Profiles { get; } = [];
 
@@ -69,6 +74,7 @@ public partial class MainViewModel(
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDashboardPage))]
     [NotifyPropertyChangedFor(nameof(IsCharactersPage))]
+    [NotifyPropertyChangedFor(nameof(IsAppearancesPage))]
     [NotifyPropertyChangedFor(nameof(IsBackupsPage))]
     [NotifyPropertyChangedFor(nameof(IsMigrationPage))]
     [NotifyPropertyChangedFor(nameof(IsSettingsPage))]
@@ -80,6 +86,8 @@ public partial class MainViewModel(
 
     public bool IsCharactersPage => CurrentPage == NavigationPage.Characters;
 
+    public bool IsAppearancesPage => CurrentPage == NavigationPage.Appearances;
+
     public bool IsBackupsPage => CurrentPage == NavigationPage.Backups;
 
     public bool IsMigrationPage => CurrentPage == NavigationPage.Migration;
@@ -90,6 +98,7 @@ public partial class MainViewModel(
     {
         NavigationPage.Dashboard => text["Dashboard"],
         NavigationPage.Characters => text["Characters"],
+        NavigationPage.Appearances => text["CharacterAppearances"],
         NavigationPage.Backups => text["Backups"],
         NavigationPage.Migration => text["Migration"],
         NavigationPage.Settings => text["Settings"],
@@ -100,6 +109,7 @@ public partial class MainViewModel(
     {
         NavigationPage.Dashboard => text["DashboardSubtitle"],
         NavigationPage.Characters => text["CharactersSubtitle"],
+        NavigationPage.Appearances => text["AppearancesSubtitle"],
         NavigationPage.Backups => text["BackupsSubtitle"],
         NavigationPage.Migration => text["MigrationSubtitle"],
         NavigationPage.Settings => text["SettingsSubtitle"],
@@ -116,10 +126,14 @@ public partial class MainViewModel(
     public partial int CorruptedBackupCount { get; private set; }
 
     [ObservableProperty]
+    public partial int AppearanceBackupCount { get; private set; }
+
+    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     [NotifyCanExecuteChangedFor(nameof(AddProfileCommand))]
     [NotifyCanExecuteChangedFor(nameof(BackupSettingsCommand))]
     [NotifyCanExecuteChangedFor(nameof(RestoreSettingsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ManageAppearancesCommand))]
     [NotifyCanExecuteChangedFor(nameof(SelectSnapshotLibraryCommand))]
     [NotifyCanExecuteChangedFor(nameof(PreviewMigrationCommand))]
     [NotifyCanExecuteChangedFor(nameof(ConfirmMigrationCommand))]
@@ -172,6 +186,12 @@ public partial class MainViewModel(
     public partial string SnapshotFilter { get; set; } = string.Empty;
 
     [ObservableProperty]
+    public partial bool ShowOnlyTaggedCharacters { get; set; }
+
+    [ObservableProperty]
+    public partial AppearanceBackupsViewModel? AppearanceManager { get; private set; }
+
+    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(PreviewMigrationCommand))]
     public partial CharacterRowViewModel? SelectedMigrationSource { get; set; }
 
@@ -218,6 +238,9 @@ public partial class MainViewModel(
         {
             var settings = await settingsService.GetAsync(cancellationToken);
             SnapshotLibraryPath = settings.SnapshotLibraryPath ?? text["BackupLibraryNotSet"];
+            _isApplyingSettings = true;
+            ShowOnlyTaggedCharacters = settings.ShowOnlyTaggedCharacters;
+            _isApplyingSettings = false;
             var aliases = BuildAliasLookup(settings.CharacterAliases);
             var results = await scanProfiles.ExecuteAsync(cancellationToken);
             var recoveryResults = await incompleteRestoreRecovery.RecoverAsync(
@@ -230,6 +253,7 @@ public partial class MainViewModel(
             }
 
             Characters.Clear();
+            VisibleCharacters.Clear();
             Profiles.Clear();
             SelectedMigrationSource = null;
             SelectedMigrationTarget = null;
@@ -275,6 +299,7 @@ public partial class MainViewModel(
                 }
             }
 
+            ApplyCharacterFilter();
             Summary = text.Format("SummaryFormat", Characters.Count, results.Count);
             var issues = results
                 .Where(result => result.Issue is not null)
@@ -306,6 +331,10 @@ public partial class MainViewModel(
         finally
         {
             IsBusy = false;
+            if (CurrentPage == NavigationPage.Appearances)
+            {
+                await LoadAppearanceManagerAsync(cancellationToken);
+            }
         }
     }
 
@@ -480,6 +509,7 @@ public partial class MainViewModel(
         BackupCount = 0;
         HealthyBackupCount = 0;
         CorruptedBackupCount = 0;
+        AppearanceBackupCount = 0;
         if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
         {
             SnapshotHistorySummary = text["BackupLibraryNotSet"];
@@ -492,6 +522,10 @@ public partial class MainViewModel(
         var entries = await scanSnapshotLibrary.ExecuteAsync(
             settings.SnapshotLibraryPath,
             cancellationToken);
+        var appearanceBackups = await appearanceBackupService.ScanBackupsAsync(
+            settings.SnapshotLibraryPath,
+            cancellationToken);
+        AppearanceBackupCount = appearanceBackups.Count;
         _snapshotEntries.AddRange(entries);
         RebuildBackupGroups(aliases);
         UpdateCharacterBackupStatuses();
@@ -714,6 +748,41 @@ public partial class MainViewModel(
     }
 
     private bool CanRestoreSettings() => CanRestoreSettingsBackup && !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanManageAppearances))]
+    private async Task ManageAppearancesAsync(CancellationToken cancellationToken)
+    {
+        CurrentPage = NavigationPage.Appearances;
+        await LoadAppearanceManagerAsync(cancellationToken);
+    }
+
+    private async Task LoadAppearanceManagerAsync(CancellationToken cancellationToken)
+    {
+        if (_currentProfiles.Count == 0)
+        {
+            AppearanceManager = null;
+            StatusMessage = text["NoAppearanceProfile"];
+            return;
+        }
+
+        var libraryRoot = await EnsureBackupLibraryAsync(cancellationToken);
+        if (libraryRoot is null)
+        {
+            AppearanceManager = null;
+            StatusMessage = text["AppearanceRequiresLibrary"];
+            return;
+        }
+
+        var viewModel = new AppearanceBackupsViewModel(
+            _currentProfiles.Values.OrderBy(profile => profile.Name).ToArray(),
+            libraryRoot,
+            appearanceBackupService,
+            text);
+        AppearanceManager = viewModel;
+        await viewModel.InitializeAsync(cancellationToken);
+    }
+
+    private bool CanManageAppearances() => !IsBusy;
 
     [RelayCommand(CanExecute = nameof(CanCheckForUpdates))]
     public async Task CheckForUpdatesAsync(CancellationToken cancellationToken = default)
@@ -955,6 +1024,37 @@ public partial class MainViewModel(
 
     partial void OnSnapshotFilterChanged(string value) => ApplySnapshotFilter();
 
+    partial void OnShowOnlyTaggedCharactersChanged(bool value)
+    {
+        ApplyCharacterFilter();
+        if (!_isApplyingSettings)
+        {
+            _ = SaveCharacterFilterAsync(value);
+        }
+    }
+
+    private void ApplyCharacterFilter()
+    {
+        VisibleCharacters.Clear();
+        foreach (var character in Characters.Where(character =>
+                     !ShowOnlyTaggedCharacters || !string.IsNullOrWhiteSpace(character.Alias)))
+        {
+            VisibleCharacters.Add(character);
+        }
+    }
+
+    private async Task SaveCharacterFilterAsync(bool value)
+    {
+        try
+        {
+            await settingsService.SetShowOnlyTaggedCharactersAsync(value);
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = text.Format("SaveCharacterFilterFailedFormat", exception.Message);
+        }
+    }
+
     private void ApplySnapshotFilter()
     {
         var filter = SnapshotFilter.Trim();
@@ -975,6 +1075,7 @@ public partial class MainViewModel(
         try
         {
             await settingsService.SetCharacterAliasAsync(profileId, folderName, alias);
+            ApplyCharacterFilter();
             StatusMessage = string.IsNullOrWhiteSpace(alias)
                 ? text["CharacterTagCleared"]
                 : text.Format("CharacterTagSavedFormat", alias.Trim());
@@ -1020,6 +1121,7 @@ public enum NavigationPage
 {
     Dashboard,
     Characters,
+    Appearances,
     Backups,
     Migration,
     Settings,

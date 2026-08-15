@@ -58,6 +58,16 @@ public sealed class SettingsService(ISettingsStore settingsStore)
             cancellationToken);
     }
 
+    public Task SetShowOnlyTaggedCharactersAsync(
+        bool showOnlyTaggedCharacters,
+        CancellationToken cancellationToken = default) =>
+        UpdateAsync(
+            settings => settings with
+            {
+                ShowOnlyTaggedCharacters = showOnlyTaggedCharacters,
+            },
+            cancellationToken);
+
     public Task SetSnapshotLibraryPathAsync(
         string libraryPath,
         CancellationToken cancellationToken = default)

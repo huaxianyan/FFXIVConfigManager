@@ -27,7 +27,7 @@
 - 使用 `%LOCALAPPDATA%/FFXIVConfigManager/settings.json` 持久化用户设置。
 - 原子写入设置文件，并拒绝读取高于当前程序支持版本的数据。
 - 扫描并验证 `FFXIV_CHR` 角色目录。
-- 为不同配置源下的角色保存独立标记。
+- 为不同配置源下的角色保存独立标记，并可只显示有标记的角色；筛选状态会持久化。
 - 识别 14 类已知角色配置文件。
 - 默认忽略聊天日志、`.old` 文件、隐私数据、缓存和未知文件。
 - 创建版本化 `.ffxivconfig.zip` 角色备份。
@@ -45,6 +45,9 @@
 - 默认迁移 `UISAVE.DAT` 中的界面状态与场地标点，并提供全部 14 个已知文件高级模式。
 - 迁移时同时保存迁移源备份与目标操作前恢复点。
 - 在备份目录中维护单份软件设置备份，可按角色标记或自定义配置源选择备份和恢复范围。
+- 读取配置根目录中的 40 个角色形象栏位，并以种族、性别和备注作为辅助识别信息。
+- 角色形象备份与源栏位解耦，支持种族和性别组合筛选以及备注搜索。
+- 恢复角色形象时选择目标栏位，覆盖前预览现有数据、二次确认并自动创建恢复点。
 - 启动时或按需检查 GitHub Release，下载并校验新版本后从任意可写的解压目录事务性更新和重启。
 - 支持查看和删除任意历史备份，本机缺少对应角色时仍可查看备份内容。
 - 不因检测到 FFXIV 或 XIVLauncher 正在运行而限制操作。
@@ -57,7 +60,7 @@
 
 ## 开发
 
-需要安装 .NET 10 SDK。本地化资源结构和文案规则见 [`docs/localization.md`](docs/localization.md)，自动更新的校验、替换和回滚流程见 [`docs/automatic-update.md`](docs/automatic-update.md)。
+需要安装 .NET 10 SDK。本地化资源结构和文案规则见 [`docs/localization.md`](docs/localization.md)，角色形象备份格式见 [`docs/appearance-backup-format.md`](docs/appearance-backup-format.md)，自动更新的校验、替换和回滚流程见 [`docs/automatic-update.md`](docs/automatic-update.md)。
 
 ```powershell
 dotnet restore

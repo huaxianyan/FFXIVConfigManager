@@ -16,6 +16,8 @@ public sealed record ApplicationSettings(
 
     public string? SnapshotLibraryPath { get; init; }
 
+    public bool ShowOnlyTaggedCharacters { get; init; }
+
     public static ApplicationSettings Empty { get; } =
         new(CurrentSchemaVersion, [], []);
 }
