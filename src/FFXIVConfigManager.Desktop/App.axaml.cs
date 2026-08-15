@@ -35,7 +35,10 @@ public partial class App : Avalonia.Application
                 settingsStore);
             var scanner = new PhysicalConfigRootScanner();
             var settingsService = new SettingsService(settingsStore);
-            var settingsTransferService = new JsonSettingsTransferService(settingsStore);
+            var settingsBackupService = new JsonSettingsBackupService(
+                settingsStore,
+                settingsService,
+                TimeProvider.System);
             var snapshotService = new ZipSnapshotArchiveService();
             var createSnapshot = new CreateCharacterSnapshotUseCase(
                 snapshotService,
@@ -58,19 +61,28 @@ public partial class App : Avalonia.Application
 
             MainWindow? window = null;
             var text = ResourceTextLocalizer.Instance;
-            var folderPicker = new AvaloniaFolderPickerService(() => window, text);
+            var folderPicker = new AvaloniaFolderPickerService(() => window);
+            var characterBackupDialog = new AvaloniaCharacterBackupDialogService(
+                () => window,
+                previewSnapshot,
+                restoreSnapshot,
+                snapshotService,
+                text);
+            var settingsBackupDialog = new AvaloniaSettingsBackupDialogService(
+                () => window,
+                settingsBackupService,
+                text);
             var viewModel = new MainViewModel(
                 new ScanProfilesUseCase(configuredDiscovery, scanner),
                 settingsService,
                 createSnapshot,
                 scanSnapshotLibrary,
-                previewSnapshot,
-                restoreSnapshot,
                 previewMigration,
                 migrateCharacter,
                 transactionalRestorer,
-                snapshotService,
-                settingsTransferService,
+                settingsBackupService,
+                characterBackupDialog,
+                settingsBackupDialog,
                 folderPicker,
                 text);
             window = new MainWindow

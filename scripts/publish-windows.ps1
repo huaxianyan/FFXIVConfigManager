@@ -1,7 +1,8 @@
 ﻿[CmdletBinding()]
 param(
     [string]$Runtime = "win-x64",
-    [string]$Configuration = "Release"
+    [string]$Configuration = "Release",
+    [string]$Version = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,15 +18,24 @@ if (Test-Path $publishDirectory) {
 
 New-Item $publishDirectory -ItemType Directory -Force | Out-Null
 
-dotnet publish $project `
-    --configuration $Configuration `
-    --runtime $Runtime `
-    --self-contained true `
-    --output $publishDirectory `
-    -p:PublishSingleFile=true `
-    -p:IncludeNativeLibrariesForSelfExtract=true `
-    -p:DebugType=None `
-    -p:DebugSymbols=false
+$publishArguments = @(
+    "publish",
+    $project,
+    "--configuration", $Configuration,
+    "--runtime", $Runtime,
+    "--self-contained", "true",
+    "--output", $publishDirectory,
+    "-p:PublishSingleFile=true",
+    "-p:IncludeNativeLibrariesForSelfExtract=true",
+    "-p:DebugType=None",
+    "-p:DebugSymbols=false"
+)
+
+if (-not [string]::IsNullOrWhiteSpace($Version)) {
+    $publishArguments += "-p:Version=$Version"
+}
+
+dotnet @publishArguments
 
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish 失败，退出代码：$LASTEXITCODE"

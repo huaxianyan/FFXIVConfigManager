@@ -1,0 +1,27 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FFXIVConfigManager.Desktop.ViewModels"
+        xmlns:l10n="using:FFXIVConfigManager.Desktop.Localization"
+        x:Class="FFXIVConfigManager.Desktop.Views.SettingsBackupScopeWindow"
+        x:DataType="vm:SettingsBackupScopeViewModel"
+        Width="560"
+        Height="360"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding Title}">
+    <Grid Margin="24" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
+        <TextBlock FontSize="24" FontWeight="SemiBold" Text="{Binding Title}" />
+        <TextBlock Grid.Row="1" Opacity="0.7" TextWrapping="Wrap" Text="{Binding Notice}" />
+        <StackPanel Grid.Row="2" Spacing="12">
+            <CheckBox IsChecked="{Binding IncludeCharacterAliases}"
+                      IsEnabled="{Binding CanIncludeCharacterAliases}"
+                      Content="{l10n:Tr SettingsScopeCharacterAliases}" />
+            <CheckBox IsChecked="{Binding IncludeCustomProfiles}"
+                      IsEnabled="{Binding CanIncludeCustomProfiles}"
+                      Content="{l10n:Tr SettingsScopeCustomProfiles}" />
+            <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Text="{Binding StatusMessage}" />
+        </StackPanel>
+        <Button Grid.Row="3" HorizontalAlignment="Right"
+                Command="{Binding ConfirmCommand}" Content="{Binding ConfirmButtonText}" />
+    </Grid>
+</Window>

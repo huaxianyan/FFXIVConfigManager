@@ -18,22 +18,19 @@ public partial class MainViewModel(
     SettingsService settingsService,
     CreateCharacterSnapshotUseCase createSnapshot,
     ScanSnapshotLibraryUseCase scanSnapshotLibrary,
-    PreviewSnapshotUseCase previewSnapshot,
-    RestoreSnapshotUseCase restoreSnapshot,
     PreviewCharacterMigrationUseCase previewMigration,
     MigrateCharacterConfigurationUseCase migrateCharacter,
     IIncompleteRestoreRecovery incompleteRestoreRecovery,
-    ISnapshotArchiveService snapshotArchiveService,
-    ISettingsTransferService settingsTransferService,
+    ISettingsBackupService settingsBackupService,
+    ICharacterBackupDialogService characterBackupDialog,
+    ISettingsBackupDialogService settingsBackupDialog,
     IFolderPickerService folderPicker,
     ITextLocalizer text) : ViewModelBase
 {
-    private readonly List<SnapshotRowViewModel> _allSnapshots = [];
+    private readonly List<CharacterBackupGroupViewModel> _allBackupGroups = [];
+    private readonly List<SnapshotLibraryEntry> _snapshotEntries = [];
     private readonly Dictionary<Guid, GameProfile> _currentProfiles = [];
     private readonly Dictionary<(Guid ProfileId, string Folder), CharacterConfiguration> _currentCharacters = [];
-    private SnapshotLibraryEntry? _previewedSnapshot;
-    private GameProfile? _previewedTargetProfile;
-    private CharacterConfiguration? _previewedTarget;
     private CharacterRowViewModel? _previewedMigrationSource;
     private CharacterRowViewModel? _previewedMigrationTarget;
     private ConfigScope _previewedMigrationScopes;
@@ -42,9 +39,7 @@ public partial class MainViewModel(
 
     public ObservableCollection<ProfileRowViewModel> Profiles { get; } = [];
 
-    public ObservableCollection<SnapshotRowViewModel> Snapshots { get; } = [];
-
-    public ObservableCollection<SnapshotFilePreviewViewModel> SnapshotPreviewFiles { get; } = [];
+    public ObservableCollection<CharacterBackupGroupViewModel> BackupGroups { get; } = [];
 
     public ObservableCollection<SnapshotFilePreviewViewModel> MigrationPreviewFiles { get; } = [];
 
@@ -119,10 +114,9 @@ public partial class MainViewModel(
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     [NotifyCanExecuteChangedFor(nameof(AddProfileCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExportSettingsCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ImportSettingsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(BackupSettingsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RestoreSettingsCommand))]
     [NotifyCanExecuteChangedFor(nameof(SelectSnapshotLibraryCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ConfirmRestoreCommand))]
     [NotifyCanExecuteChangedFor(nameof(PreviewMigrationCommand))]
     [NotifyCanExecuteChangedFor(nameof(ConfirmMigrationCommand))]
     public partial bool IsBusy { get; private set; }
@@ -146,11 +140,11 @@ public partial class MainViewModel(
     public partial string SnapshotHistorySummary { get; private set; } = text["NoBackups"];
 
     [ObservableProperty]
-    public partial string SnapshotPreviewTitle { get; private set; } = text["SelectBackupForPreview"];
+    public partial string SettingsBackupStatusText { get; private set; } = text["SettingsBackupMissing"];
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ConfirmRestoreCommand))]
-    public partial bool CanRestorePreview { get; private set; }
+    [NotifyCanExecuteChangedFor(nameof(RestoreSettingsCommand))]
+    public partial bool CanRestoreSettingsBackup { get; private set; }
 
     [ObservableProperty]
     public partial string SnapshotFilter { get; set; } = string.Empty;
@@ -254,7 +248,8 @@ public partial class MainViewModel(
                         character,
                         alias,
                         SaveAliasAsync,
-                        CreateSnapshotAsync));
+                        CreateSnapshotAsync,
+                        ManageCharacterBackupsAsync));
                 }
             }
 
@@ -289,55 +284,6 @@ public partial class MainViewModel(
         finally
         {
             IsBusy = false;
-        }
-    }
-
-    [RelayCommand(CanExecute = nameof(CanRunCommand))]
-    private async Task ExportSettingsAsync(CancellationToken cancellationToken)
-    {
-        var path = await folderPicker.PickSaveFileAsync(
-            text["ExportSettingsPickerTitle"],
-            $"FFXIVConfigManager-settings-{DateTimeOffset.Now:yyyyMMdd}",
-            ".ffxivconfig-settings.json",
-            cancellationToken);
-        if (path is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await settingsTransferService.ExportAsync(path, cancellationToken);
-            StatusMessage = text.Format("SettingsExportedFormat", Path.GetFileName(path));
-        }
-        catch (Exception exception)
-        {
-            StatusMessage = text.Format("ExportSettingsFailedFormat", exception.Message);
-        }
-    }
-
-    [RelayCommand(CanExecute = nameof(CanRunCommand))]
-    private async Task ImportSettingsAsync(CancellationToken cancellationToken)
-    {
-        var path = await folderPicker.PickOpenFileAsync(
-            text["ImportSettingsPickerTitle"],
-            ".ffxivconfig-settings.json",
-            cancellationToken);
-        if (path is null)
-        {
-            return;
-        }
-
-        try
-        {
-            var imported = await settingsTransferService.ImportAsync(path, cancellationToken);
-            await settingsService.ImportPortableAsync(imported, cancellationToken);
-            StatusMessage = text["SettingsImported"];
-            await RefreshAsync(cancellationToken);
-        }
-        catch (Exception exception)
-        {
-            StatusMessage = text.Format("ImportSettingsFailedFormat", exception.Message);
         }
     }
 
@@ -469,7 +415,17 @@ public partial class MainViewModel(
             }
 
             StatusMessage = text.Format("CreatingBackupFormat", character.FolderName.Value);
-            var result = await createSnapshot.ExecuteAsync(profile, character, libraryPath);
+            var alias = settings.CharacterAliases.LastOrDefault(item =>
+                    item.ProfileId == profile.Id &&
+                    string.Equals(
+                        item.CharacterFolder,
+                        character.FolderName.Value,
+                        StringComparison.OrdinalIgnoreCase))?.Alias;
+            var result = await createSnapshot.ExecuteAsync(
+                profile,
+                character,
+                libraryPath,
+                characterAlias: alias);
             StatusMessage = text.Format(
                 "BackupCreatedFormat",
                 Path.GetFileName(result.ArchivePath));
@@ -497,42 +453,27 @@ public partial class MainViewModel(
         IReadOnlyDictionary<(Guid ProfileId, string CharacterFolder), string> aliases,
         CancellationToken cancellationToken)
     {
-        _allSnapshots.Clear();
-        Snapshots.Clear();
+        _snapshotEntries.Clear();
+        BackupGroups.Clear();
         BackupCount = 0;
         HealthyBackupCount = 0;
         CorruptedBackupCount = 0;
-        SnapshotPreviewFiles.Clear();
-        SnapshotPreviewTitle = text["SelectBackupForPreview"];
-        ClearRestoreSelection();
-
         if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
         {
             SnapshotHistorySummary = text["BackupLibraryNotSet"];
+            SettingsBackupStatusText = text["SettingsBackupMissing"];
+            CanRestoreSettingsBackup = false;
+            UpdateCharacterBackupStatuses();
             return;
         }
 
         var entries = await scanSnapshotLibrary.ExecuteAsync(
             settings.SnapshotLibraryPath,
             cancellationToken);
-        foreach (var entry in entries)
-        {
-            string? alias = null;
-            if (entry.Manifest is not null)
-            {
-                alias = FindAlias(
-                    aliases,
-                    entry.Manifest.Source.ProfileId,
-                    entry.Manifest.Source.CharacterFolder);
-            }
-
-            _allSnapshots.Add(SnapshotRowViewModel.From(
-                entry,
-                alias,
-                PreviewSnapshotAsync,
-                DeleteSnapshotAsync));
-        }
-
+        _snapshotEntries.AddRange(entries);
+        RebuildBackupGroups(aliases);
+        UpdateCharacterBackupStatuses();
+        await LoadSettingsBackupStatusAsync(settings.SnapshotLibraryPath, cancellationToken);
         ApplySnapshotFilter();
         var corrupted = entries.Count(entry =>
             entry.IntegrityStatus == SnapshotIntegrityStatus.Corrupted);
@@ -544,147 +485,234 @@ public partial class MainViewModel(
             : text.Format("BackupSummaryFormat", entries.Count, corrupted);
     }
 
-    private async Task DeleteSnapshotAsync(SnapshotLibraryEntry snapshot)
+    private void RebuildBackupGroups(
+        IReadOnlyDictionary<(Guid ProfileId, string CharacterFolder), string> aliases)
     {
-        if (IsBusy)
+        BackupGroups.Clear();
+        _allBackupGroups.Clear();
+        var identified = _snapshotEntries
+            .Where(entry => entry.Manifest is not null)
+            .GroupBy(entry => (
+                entry.Manifest!.Source.ProfileId,
+                entry.Manifest.Source.CharacterFolder));
+        foreach (var group in identified.OrderBy(item => item.Key.CharacterFolder))
         {
-            return;
+            var entries = group.ToArray();
+            var manifest = entries
+                .OrderByDescending(entry => entry.Manifest!.CreatedAtUtc)
+                .First()
+                .Manifest!;
+            var alias = FindAlias(aliases, group.Key.ProfileId, group.Key.CharacterFolder)
+                ?? entries
+                    .OrderByDescending(entry => entry.Manifest!.CreatedAtUtc)
+                    .Select(entry => entry.Manifest!.Source.CharacterAlias)
+                    .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            var characterName = string.IsNullOrWhiteSpace(alias)
+                ? group.Key.CharacterFolder
+                : alias;
+            var target = ResolveLocalCharacter(group.Key.ProfileId, group.Key.CharacterFolder);
+            _allBackupGroups.Add(CharacterBackupGroupViewModel.Create(
+                characterName,
+                manifest.Source.ProfileName,
+                entries,
+                () => OpenBackupGroupAsync(characterName, target.Profile, target.Character, entries)));
         }
 
-        IsBusy = true;
-        try
+        var unidentified = _snapshotEntries.Where(entry => entry.Manifest is null).ToArray();
+        if (unidentified.Length > 0)
         {
-            await snapshotArchiveService.DeleteAsync(snapshot.ArchivePath);
-            StatusMessage = text.Format("BackupDeletedFormat", Path.GetFileName(snapshot.ArchivePath));
-            await ReloadSnapshotsAsync();
-        }
-        catch (Exception exception)
-        {
-            StatusMessage = text.Format("DeleteBackupFailedFormat", exception.Message);
-        }
-        finally
-        {
-            IsBusy = false;
+            _allBackupGroups.Add(CharacterBackupGroupViewModel.Create(
+                text["UnidentifiedBackups"],
+                text["UnknownSource"],
+                unidentified,
+                () => OpenBackupGroupAsync(
+                    text["UnidentifiedBackups"],
+                    null,
+                    null,
+                    unidentified)));
         }
     }
 
-    private async Task PreviewSnapshotAsync(SnapshotLibraryEntry snapshot)
+    private void UpdateCharacterBackupStatuses()
     {
-        if (IsBusy)
+        foreach (var character in Characters)
         {
-            StatusMessage = text["OperationInProgress"];
+            character.SetBackups(FindBackupsForCharacter(
+                character.Profile.Id,
+                character.Character.FolderName.Value));
+        }
+    }
+
+    private IReadOnlyList<SnapshotLibraryEntry> FindBackupsForCharacter(
+        Guid profileId,
+        string characterFolder)
+    {
+        var exact = _snapshotEntries.Where(entry =>
+            entry.Manifest?.Source.ProfileId == profileId &&
+            string.Equals(
+                entry.Manifest.Source.CharacterFolder,
+                characterFolder,
+                StringComparison.OrdinalIgnoreCase)).ToArray();
+        var localFolderCount = Characters.Count(character => string.Equals(
+            character.Character.FolderName.Value,
+            characterFolder,
+            StringComparison.OrdinalIgnoreCase));
+        if (localFolderCount != 1)
+        {
+            return exact;
+        }
+
+        return _snapshotEntries.Where(entry => string.Equals(
+                entry.Manifest?.Source.CharacterFolder,
+                characterFolder,
+                StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+    }
+
+    private (GameProfile? Profile, CharacterConfiguration? Character) ResolveLocalCharacter(
+        Guid profileId,
+        string characterFolder)
+    {
+        if (_currentProfiles.TryGetValue(profileId, out var exactProfile))
+        {
+            _currentCharacters.TryGetValue((profileId, characterFolder), out var exactCharacter);
+            return (exactProfile, exactCharacter);
+        }
+
+        var matches = Characters.Where(character => string.Equals(
+                character.Character.FolderName.Value,
+                characterFolder,
+                StringComparison.OrdinalIgnoreCase))
+            .Take(2)
+            .ToArray();
+        return matches.Length == 1
+            ? (matches[0].Profile, matches[0].Character)
+            : (null, null);
+    }
+
+    private Task ManageCharacterBackupsAsync(
+        GameProfile profile,
+        CharacterConfiguration character) =>
+        OpenBackupGroupAsync(
+            Characters.First(item => ReferenceEquals(item.Character, character)).DisplayName,
+            profile,
+            character,
+            FindBackupsForCharacter(profile.Id, character.FolderName.Value));
+
+    private async Task OpenBackupGroupAsync(
+        string characterName,
+        GameProfile? profile,
+        CharacterConfiguration? character,
+        IReadOnlyList<SnapshotLibraryEntry> backups)
+    {
+        var settings = await settingsService.GetAsync();
+        if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
+        {
+            StatusMessage = text["BackupLibraryNotSet"];
             return;
         }
 
-        IsBusy = true;
-        try
+        var changed = await characterBackupDialog.ShowAsync(new CharacterBackupDialogContext(
+            characterName,
+            profile,
+            character,
+            _currentProfiles.Values.OrderBy(item => item.Name).ToArray(),
+            settings.SnapshotLibraryPath,
+            backups));
+        if (changed)
         {
-            CharacterConfiguration? target = null;
-            GameProfile? targetProfile = null;
-            if (snapshot.Manifest is not null)
-            {
-                _currentCharacters.TryGetValue(
-                    (snapshot.Manifest.Source.ProfileId, snapshot.Manifest.Source.CharacterFolder),
-                    out target);
-                _currentProfiles.TryGetValue(snapshot.Manifest.Source.ProfileId, out targetProfile);
-            }
+            await RefreshAsync();
+        }
+    }
 
-            var preview = await previewSnapshot.ExecuteAsync(snapshot, target);
-            SnapshotPreviewFiles.Clear();
-            foreach (var file in preview.Files)
-            {
-                SnapshotPreviewFiles.Add(SnapshotFilePreviewViewModel.From(file));
-            }
-
-            var changed = preview.Files.Count(file =>
-                file.Difference is SnapshotFileDifference.Different or
-                    SnapshotFileDifference.MissingFromTarget);
-            SnapshotPreviewTitle = target is null
-                ? text["TargetCharacterUnavailable"]
+    private async Task LoadSettingsBackupStatusAsync(
+        string libraryRoot,
+        CancellationToken cancellationToken)
+    {
+        var status = await settingsBackupService.GetStatusAsync(libraryRoot, cancellationToken);
+        CanRestoreSettingsBackup = status.Exists && status.IsValid;
+        SettingsBackupStatusText = !status.Exists
+            ? text["SettingsBackupMissing"]
+            : !status.IsValid
+                ? text["SettingsBackupCorrupted"]
                 : text.Format(
-                    "RestorePreviewFormat",
-                    changed,
-                    preview.Files.Count - changed);
-            _previewedSnapshot = snapshot;
-            _previewedTarget = target;
-            _previewedTargetProfile = targetProfile;
-            CanRestorePreview = target is not null && targetProfile is not null;
-            StatusMessage = text["BackupPreviewReady"];
-        }
-        catch (Exception exception)
-        {
-            SnapshotPreviewFiles.Clear();
-            SnapshotPreviewTitle = text["PreviewUnavailable"];
-            ClearRestoreSelection();
-            StatusMessage = text.Format("BackupPreviewFailedFormat", exception.Message);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+                    "SettingsBackupValidFormat",
+                    status.CreatedAtUtc!.Value.ToLocalTime().ToString("g"),
+                    FormatSettingsScopes(status.IncludedScopes));
     }
 
-    [RelayCommand(CanExecute = nameof(CanConfirmRestore))]
-    private async Task ConfirmRestoreAsync(CancellationToken cancellationToken)
+    private string FormatSettingsScopes(SettingsBackupScope scopes)
     {
-        if (_previewedSnapshot is null ||
-            _previewedTarget is null ||
-            _previewedTargetProfile is null)
+        var names = new List<string>();
+        if (scopes.HasFlag(SettingsBackupScope.CharacterAliases))
+        {
+            names.Add(text["SettingsScopeCharacterAliases"]);
+        }
+
+        if (scopes.HasFlag(SettingsBackupScope.CustomProfiles))
+        {
+            names.Add(text["SettingsScopeCustomProfiles"]);
+        }
+
+        return string.Join("、", names);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunCommand))]
+    private async Task BackupSettingsAsync(CancellationToken cancellationToken)
+    {
+        var libraryRoot = await EnsureBackupLibraryAsync(cancellationToken);
+        if (libraryRoot is null)
         {
             return;
         }
 
-        IsBusy = true;
-        string? completionMessage = null;
-        try
-        {
-            var settings = await settingsService.GetAsync(cancellationToken);
-            if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
-            {
-                throw new InvalidOperationException(text["RecoveryPointRequiresLibrary"]);
-            }
-
-            StatusMessage = text["Restoring"];
-            var result = await restoreSnapshot.ExecuteAsync(
-                _previewedSnapshot,
-                _previewedTargetProfile,
-                _previewedTarget,
-                settings.SnapshotLibraryPath,
-                cancellationToken);
-            completionMessage = text.Format(
-                "RestoreCompletedFormat",
-                result.RestoreResult.RestoredFileCount,
-                Path.GetFileName(result.RecoveryPoint.ArchivePath));
-            StatusMessage = completionMessage;
-            ClearRestoreSelection();
-        }
-        catch (SnapshotRestoreException exception)
-        {
-            StatusMessage = exception.RollbackCompleted
-                ? exception.Message
-                : text.Format("RestoreCriticalErrorFormat", exception.Message);
-        }
-        catch (OperationCanceledException)
-        {
-            StatusMessage = text["RestoreCanceled"];
-        }
-        catch (Exception exception)
-        {
-            StatusMessage = text.Format("RestoreFailedFormat", exception.Message);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-
-        if (completionMessage is not null)
+        if (await settingsBackupDialog.ShowBackupAsync(libraryRoot, cancellationToken))
         {
             await RefreshAsync(cancellationToken);
-            StatusMessage = completionMessage;
+            StatusMessage = text["SettingsBackupSucceeded"];
         }
     }
 
-    private bool CanConfirmRestore() => CanRestorePreview && !IsBusy;
+    [RelayCommand(CanExecute = nameof(CanRestoreSettings))]
+    private async Task RestoreSettingsAsync(CancellationToken cancellationToken)
+    {
+        var settings = await settingsService.GetAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
+        {
+            return;
+        }
+
+        if (await settingsBackupDialog.ShowRestoreAsync(
+                settings.SnapshotLibraryPath,
+                cancellationToken))
+        {
+            await RefreshAsync(cancellationToken);
+            StatusMessage = text["SettingsRestoreSucceeded"];
+        }
+    }
+
+    private bool CanRestoreSettings() => CanRestoreSettingsBackup && !IsBusy;
+
+    private async Task<string?> EnsureBackupLibraryAsync(CancellationToken cancellationToken)
+    {
+        var settings = await settingsService.GetAsync(cancellationToken);
+        if (!string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
+        {
+            return settings.SnapshotLibraryPath;
+        }
+
+        var path = await folderPicker.PickFolderAsync(
+            text["SelectBackupLibraryDirectory"],
+            cancellationToken);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        await settingsService.SetSnapshotLibraryPathAsync(path, cancellationToken);
+        SnapshotLibraryPath = Path.GetFullPath(path);
+        return SnapshotLibraryPath;
+    }
 
     [RelayCommand(CanExecute = nameof(CanPreviewMigration))]
     private async Task PreviewMigrationAsync(CancellationToken cancellationToken)
@@ -832,25 +860,17 @@ public partial class MainViewModel(
         MigrationPreviewTitle = text["SelectCharactersForMigrationPreview"];
     }
 
-    private void ClearRestoreSelection()
-    {
-        _previewedSnapshot = null;
-        _previewedTarget = null;
-        _previewedTargetProfile = null;
-        CanRestorePreview = false;
-    }
-
     partial void OnSnapshotFilterChanged(string value) => ApplySnapshotFilter();
 
     private void ApplySnapshotFilter()
     {
         var filter = SnapshotFilter.Trim();
-        Snapshots.Clear();
-        foreach (var snapshot in _allSnapshots.Where(item =>
+        BackupGroups.Clear();
+        foreach (var group in _allBackupGroups.Where(item =>
                      filter.Length == 0 ||
                      item.SearchText.Contains(filter, StringComparison.OrdinalIgnoreCase)))
         {
-            Snapshots.Add(snapshot);
+            BackupGroups.Add(group);
         }
     }
 
@@ -973,13 +993,15 @@ public sealed partial class CharacterRowViewModel : ObservableObject
     private readonly CharacterConfiguration _character;
     private readonly Func<Guid, CharacterFolderName, string, Task> _saveAlias;
     private readonly Func<GameProfile, CharacterConfiguration, Task> _createSnapshot;
+    private readonly Func<GameProfile, CharacterConfiguration, Task> _manageBackups;
 
     private CharacterRowViewModel(
         GameProfile profile,
         CharacterConfiguration character,
         string? alias,
         Func<Guid, CharacterFolderName, string, Task> saveAlias,
-        Func<GameProfile, CharacterConfiguration, Task> createSnapshot)
+        Func<GameProfile, CharacterConfiguration, Task> createSnapshot,
+        Func<GameProfile, CharacterConfiguration, Task> manageBackups)
     {
         _profileId = profile.Id;
         _characterFolder = character.FolderName;
@@ -987,6 +1009,7 @@ public sealed partial class CharacterRowViewModel : ObservableObject
         _character = character;
         _saveAlias = saveAlias;
         _createSnapshot = createSnapshot;
+        _manageBackups = manageBackups;
         ProfileName = profile.Name;
         FolderName = character.FolderName.Value;
         Alias = alias ?? string.Empty;
@@ -1012,6 +1035,10 @@ public sealed partial class CharacterRowViewModel : ObservableObject
     public string FileSummary { get; }
 
     [ObservableProperty]
+    public partial string BackupStatus { get; private set; } =
+        ResourceTextLocalizer.Instance["NoCharacterBackups"];
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DisplayName))]
     public partial string Alias { get; set; }
 
@@ -1020,130 +1047,83 @@ public sealed partial class CharacterRowViewModel : ObservableObject
         CharacterConfiguration character,
         string? alias,
         Func<Guid, CharacterFolderName, string, Task> saveAlias,
-        Func<GameProfile, CharacterConfiguration, Task> createSnapshot) =>
-        new(profile, character, alias, saveAlias, createSnapshot);
+        Func<GameProfile, CharacterConfiguration, Task> createSnapshot,
+        Func<GameProfile, CharacterConfiguration, Task> manageBackups) =>
+        new(profile, character, alias, saveAlias, createSnapshot, manageBackups);
 
     [RelayCommand]
     private Task SaveAliasAsync() => _saveAlias(_profileId, _characterFolder, Alias);
 
     [RelayCommand]
     private Task CreateSnapshotAsync() => _createSnapshot(_profile, _character);
+
+    [RelayCommand]
+    private Task ManageBackupsAsync() => _manageBackups(_profile, _character);
+
+    public void SetBackups(IReadOnlyList<SnapshotLibraryEntry> backups)
+    {
+        if (backups.Count == 0)
+        {
+            BackupStatus = ResourceTextLocalizer.Instance["NoCharacterBackups"];
+            return;
+        }
+
+        var valid = backups.Count(item => item.IntegrityStatus == SnapshotIntegrityStatus.Valid);
+        var corrupted = backups.Count - valid;
+        var latest = backups.Max(item =>
+            item.Manifest?.CreatedAtUtc ?? item.ArchiveLastWriteTimeUtc);
+        BackupStatus = ResourceTextLocalizer.Instance.Format(
+            "CharacterBackupStatusFormat",
+            backups.Count,
+            valid,
+            corrupted,
+            latest.ToLocalTime().ToString("g"));
+    }
 }
 
-public sealed partial class SnapshotRowViewModel : ObservableObject
+public sealed partial class CharacterBackupGroupViewModel : ObservableObject
 {
-    private readonly SnapshotLibraryEntry _entry;
-    private readonly Func<SnapshotLibraryEntry, Task> _preview;
-    private readonly Func<SnapshotLibraryEntry, Task> _delete;
+    private readonly Func<Task> _open;
 
-    private SnapshotRowViewModel(
-        SnapshotLibraryEntry entry,
-        string? alias,
-        Func<SnapshotLibraryEntry, Task> preview,
-        Func<SnapshotLibraryEntry, Task> delete)
+    private CharacterBackupGroupViewModel(
+        string characterName,
+        string profileName,
+        IReadOnlyList<SnapshotLibraryEntry> backups,
+        Func<Task> open)
     {
-        _entry = entry;
-        _preview = preview;
-        _delete = delete;
-        var manifest = entry.Manifest;
-        CharacterName = string.IsNullOrWhiteSpace(alias)
-            ? manifest?.Source.CharacterFolder ?? Path.GetFileName(entry.ArchivePath)
-            : alias;
-        var text = ResourceTextLocalizer.Instance;
-        CharacterFolder = manifest?.Source.CharacterFolder ?? text["Unavailable"];
-        ProfileName = manifest?.Source.ProfileName ?? text["UnknownSource"];
-        CreatedAt = (manifest?.CreatedAtUtc ?? entry.ArchiveLastWriteTimeUtc)
-            .ToLocalTime()
-            .ToString("g");
-        FileSummary = manifest is null
-            ? text["ManifestUnavailable"]
-            : text.Format(
-                "FileCountAndSizeFormat",
-                manifest.Files.Count,
-                FormatSize(entry.ArchiveSize));
-        IntegrityText = entry.IntegrityStatus == SnapshotIntegrityStatus.Valid
-            ? text["IntegrityValid"]
-            : text["IntegrityCorrupted"];
-        TypeText = manifest?.Reason switch
-        {
-            SnapshotReason.BeforeMigration => text["TypeBeforeMigration"],
-            SnapshotReason.BeforeRestore => text["TypeBeforeRestore"],
-            SnapshotReason.MigrationSource => text["TypeMigrationSource"],
-            SnapshotReason.Manual => text["TypeManual"],
-            _ => text["TypeUnknown"],
-        };
-        ErrorSummary = entry.Errors.Count == 0
-            ? string.Empty
-            : string.Join("；", entry.Errors);
-        CanPreview = entry.IntegrityStatus == SnapshotIntegrityStatus.Valid;
-        SearchText = string.Join(
-            ' ',
-            CharacterName,
-            CharacterFolder,
-            ProfileName,
-            IntegrityText,
-            TypeText,
-            Path.GetFileName(entry.ArchivePath));
+        CharacterName = characterName;
+        ProfileName = profileName;
+        _open = open;
+        var valid = backups.Count(item => item.IntegrityStatus == SnapshotIntegrityStatus.Valid);
+        var corrupted = backups.Count - valid;
+        var latest = backups.Max(item =>
+            item.Manifest?.CreatedAtUtc ?? item.ArchiveLastWriteTimeUtc);
+        Status = ResourceTextLocalizer.Instance.Format(
+            "CharacterBackupStatusFormat",
+            backups.Count,
+            valid,
+            corrupted,
+            latest.ToLocalTime().ToString("g"));
+        SearchText = $"{characterName} {profileName} {Status}";
     }
 
     public string CharacterName { get; }
 
-    public string CharacterFolder { get; }
-
     public string ProfileName { get; }
 
-    public string CreatedAt { get; }
-
-    public string FileSummary { get; }
-
-    public string IntegrityText { get; }
-
-    public string TypeText { get; }
-
-    public string ErrorSummary { get; }
-
-    public bool CanPreview { get; }
-
-    [ObservableProperty]
-    public partial bool IsDeleteArmed { get; private set; }
-
-    public string DeleteButtonText => IsDeleteArmed
-        ? ResourceTextLocalizer.Instance["ConfirmDelete"]
-        : ResourceTextLocalizer.Instance["Delete"];
+    public string Status { get; }
 
     public string SearchText { get; }
 
-    public static SnapshotRowViewModel From(
-        SnapshotLibraryEntry entry,
-        string? alias,
-        Func<SnapshotLibraryEntry, Task> preview,
-        Func<SnapshotLibraryEntry, Task> delete) =>
-        new(entry, alias, preview, delete);
-
-    [RelayCommand(CanExecute = nameof(CanPreviewSnapshot))]
-    private Task PreviewAsync() => _preview(_entry);
+    public static CharacterBackupGroupViewModel Create(
+        string characterName,
+        string profileName,
+        IReadOnlyList<SnapshotLibraryEntry> backups,
+        Func<Task> open) =>
+        new(characterName, profileName, backups, open);
 
     [RelayCommand]
-    private async Task DeleteAsync()
-    {
-        if (!IsDeleteArmed)
-        {
-            IsDeleteArmed = true;
-            OnPropertyChanged(nameof(DeleteButtonText));
-            return;
-        }
-
-        await _delete(_entry);
-    }
-
-    private bool CanPreviewSnapshot() => CanPreview;
-
-    private static string FormatSize(long size) => size switch
-    {
-        >= 1024 * 1024 => $"{size / 1024d / 1024d:F1} MiB",
-        >= 1024 => $"{size / 1024d:F1} KiB",
-        _ => $"{size} B",
-    };
+    private Task OpenAsync() => _open();
 }
 
 public sealed record SnapshotFilePreviewViewModel(

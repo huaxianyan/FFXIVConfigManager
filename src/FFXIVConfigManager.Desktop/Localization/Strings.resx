@@ -1,169 +1,516 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <root>
-  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
-  <resheader name="version"><value>2.0</value></resheader>
-  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
-  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
-
-  <data name="AppTitle" xml:space="preserve"><value>FFXIV 角色配置管理器</value></data>
-  <data name="AppShortTitle" xml:space="preserve"><value>FFXIV 配置管理器</value></data>
-  <data name="AppTagline" xml:space="preserve"><value>安全备份与迁移</value></data>
-  <data name="CurrentStatus" xml:space="preserve"><value>当前状态</value></data>
-  <data name="Dashboard" xml:space="preserve"><value>概览</value></data>
-  <data name="Characters" xml:space="preserve"><value>角色管理</value></data>
-  <data name="Backups" xml:space="preserve"><value>备份与恢复</value></data>
-  <data name="Migration" xml:space="preserve"><value>角色迁移</value></data>
-  <data name="Settings" xml:space="preserve"><value>配置与存储</value></data>
-  <data name="Refresh" xml:space="preserve"><value>重新扫描</value></data>
-  <data name="DashboardSubtitle" xml:space="preserve"><value>查看配置状态和备份概况</value></data>
-  <data name="CharactersSubtitle" xml:space="preserve"><value>管理角色标记并创建配置备份</value></data>
-  <data name="BackupsSubtitle" xml:space="preserve"><value>校验、查看并恢复历史备份</value></data>
-  <data name="MigrationSubtitle" xml:space="preserve"><value>在两个角色之间安全迁移配置</value></data>
-  <data name="SettingsSubtitle" xml:space="preserve"><value>管理配置源和备份存储位置</value></data>
-  <data name="ProfileSource" xml:space="preserve"><value>配置源</value></data>
-  <data name="DiscoveredCharacters" xml:space="preserve"><value>已发现角色</value></data>
-  <data name="ValidBackups" xml:space="preserve"><value>有效备份</value></data>
-  <data name="CorruptedBackups" xml:space="preserve"><value>损坏备份</value></data>
-  <data name="SystemStatus" xml:space="preserve"><value>系统状态</value></data>
-  <data name="ScanResult" xml:space="preserve"><value>扫描结果</value></data>
-  <data name="PrimaryProfile" xml:space="preserve"><value>主要配置源</value></data>
-  <data name="BackupStatus" xml:space="preserve"><value>备份状态</value></data>
-  <data name="BackupLocation" xml:space="preserve"><value>备份位置</value></data>
-  <data name="CommonActions" xml:space="preserve"><value>常用功能</value></data>
-  <data name="CharactersCardDescription" xml:space="preserve"><value>查看角色配置文件、设置标记并创建备份。</value></data>
-  <data name="OpenCharacters" xml:space="preserve"><value>进入角色管理</value></data>
-  <data name="BackupsCardDescription" xml:space="preserve"><value>查看备份历史、完整性状态和恢复预览。</value></data>
-  <data name="OpenBackups" xml:space="preserve"><value>查看备份</value></data>
-  <data name="MigrationCardDescription" xml:space="preserve"><value>选择源角色和目标角色，预览后安全迁移。</value></data>
-  <data name="StartMigration" xml:space="preserve"><value>开始迁移</value></data>
-  <data name="ManageProfiles" xml:space="preserve"><value>管理配置源</value></data>
-  <data name="CharacterTag" xml:space="preserve"><value>角色标记</value></data>
-  <data name="Save" xml:space="preserve"><value>保存</value></data>
-  <data name="CreateBackup" xml:space="preserve"><value>创建备份</value></data>
-  <data name="ChangeLocation" xml:space="preserve"><value>更改位置</value></data>
-  <data name="BackupHistory" xml:space="preserve"><value>备份历史</value></data>
-  <data name="BackupFilterPlaceholder" xml:space="preserve"><value>按角色、配置源或状态筛选</value></data>
-  <data name="Preview" xml:space="preserve"><value>预览</value></data>
-  <data name="Delete" xml:space="preserve"><value>删除</value></data>
-  <data name="ConfirmDelete" xml:space="preserve"><value>确认删除</value></data>
-  <data name="ConfirmRestore" xml:space="preserve"><value>确认恢复到原角色</value></data>
-  <data name="RestoreDescription" xml:space="preserve"><value>恢复前会自动创建目标角色恢复点，恢复过程采用暂存、逐文件校验、事务日志和失败回滚，不会因为 FFXIV 正在运行而禁止操作。</value></data>
-  <data name="SelectMigrationCharacters" xml:space="preserve"><value>选择迁移角色</value></data>
-  <data name="SelectSourceCharacter" xml:space="preserve"><value>选择源角色</value></data>
-  <data name="SelectTargetCharacter" xml:space="preserve"><value>选择目标角色</value></data>
-  <data name="MigrationScope" xml:space="preserve"><value>迁移范围</value></data>
-  <data name="MigrationScopeDescription" xml:space="preserve"><value>默认范围包含 UISAVE.DAT（界面状态与场地标点），但不包含隐私、缓存和物品排序。高级的「全部 14 个已知文件」模式会覆盖 ACQ.DAT、ITEMFDR.DAT、ITEMODR.DAT 等文件，仅建议确认确有需要时使用，迁移前仍会创建目标恢复点。</value></data>
-  <data name="GenerateMigrationPreview" xml:space="preserve"><value>生成迁移预览</value></data>
-  <data name="ConfirmMigration" xml:space="preserve"><value>确认迁移</value></data>
-  <data name="ProfileDescription" xml:space="preserve"><value>配置源是包含 FFXIV_CHR… 角色目录的游戏配置根目录，移除配置源不会删除磁盘文件。</value></data>
-  <data name="Remove" xml:space="preserve"><value>移除</value></data>
-  <data name="ProfileNamePlaceholder" xml:space="preserve"><value>配置源名称</value></data>
-  <data name="ProfilePathHint" xml:space="preserve"><value>选择包含角色文件夹的配置根目录</value></data>
-  <data name="SelectAndAddDirectory" xml:space="preserve"><value>选择目录并添加</value></data>
-  <data name="SoftwareSettingsBackup" xml:space="preserve"><value>软件设置备份</value></data>
-  <data name="SoftwareSettingsDescription" xml:space="preserve"><value>导出角色标记及相关软件设置。换设备后导入时，程序会按角色目录 ID 合并标记（同一角色以导入值为准），同时保留新设备自己的配置源和备份位置，游戏 DAT 文件仍由角色备份单独管理。</value></data>
-  <data name="ExportSoftwareSettings" xml:space="preserve"><value>导出软件设置</value></data>
-  <data name="ImportSoftwareSettings" xml:space="preserve"><value>导入软件设置</value></data>
-  <data name="BackupStorage" xml:space="preserve"><value>备份存储</value></data>
-  <data name="SelectBackupLocation" xml:space="preserve"><value>选择备份位置</value></data>
-  <data name="BackupStorageDescription" xml:space="preserve"><value>备份采用开放的 ZIP 格式并包含完整性清单，历史记录可直接从备份文件重建。</value></data>
-  <data name="PrivacyNotice" xml:space="preserve"><value>只读取配置元数据，不读取聊天日志或解析 DAT 内容，所有覆盖操作均提供预览和恢复路径。</value></data>
-
-  <data name="ScopeHud" xml:space="preserve"><value>HUD 与界面</value></data>
-  <data name="ScopeCharacter" xml:space="preserve"><value>角色设置</value></data>
-  <data name="ScopeControls" xml:space="preserve"><value>操作与键位</value></data>
-  <data name="ScopeHotbars" xml:space="preserve"><value>热键栏</value></data>
-  <data name="ScopeMacros" xml:space="preserve"><value>角色宏</value></data>
-  <data name="ScopeGearsets" xml:space="preserve"><value>套装列表</value></data>
-  <data name="ScopeUiState" xml:space="preserve"><value>界面状态与场地标点</value></data>
-  <data name="ScopeAllKnown" xml:space="preserve"><value>全部 14 个已知文件（高级）</value></data>
-  <data name="RegionInternational" xml:space="preserve"><value>国际服</value></data>
-  <data name="RegionChina" xml:space="preserve"><value>国服</value></data>
-  <data name="RegionOther" xml:space="preserve"><value>其他</value></data>
-
-  <data name="PreparingScan" xml:space="preserve"><value>正在准备扫描配置目录……</value></data>
-  <data name="NoProfileDiscovered" xml:space="preserve"><value>尚未发现配置源</value></data>
-  <data name="ZeroCharacters" xml:space="preserve"><value>0 个角色</value></data>
-  <data name="BackupLibraryNotSet" xml:space="preserve"><value>尚未设置备份库</value></data>
-  <data name="NoBackups" xml:space="preserve"><value>尚无备份</value></data>
-  <data name="SelectBackupForPreview" xml:space="preserve"><value>选择有效备份以预览差异</value></data>
-  <data name="SelectCharactersForMigrationPreview" xml:space="preserve"><value>选择源角色和目标角色后生成迁移预览</value></data>
-  <data name="Scanning" xml:space="preserve"><value>正在扫描角色配置……</value></data>
-  <data name="NoAvailableProfile" xml:space="preserve"><value>没有可用的配置源</value></data>
-  <data name="AddCustomProfileHint" xml:space="preserve"><value>可在配置与存储页面添加自定义配置目录。</value></data>
-  <data name="NoConfiguredDirectory" xml:space="preserve"><value>当前未配置任何 FFXIV 配置目录。</value></data>
-  <data name="SummaryFormat" xml:space="preserve"><value>{0} 个角色 · {1} 个配置源</value></data>
-  <data name="InterruptedTransactionsFormat" xml:space="preserve"><value>检测到无法自动回滚的中断事务：{0}</value></data>
-  <data name="RecoveredTransactionsFormat" xml:space="preserve"><value>已自动回滚 {0} 个中断的恢复事务。</value></data>
-  <data name="NoCharacterFound" xml:space="preserve"><value>未发现角色配置目录，登录过角色后可在这里看到配置。</value></data>
-  <data name="ScanCompletedFormat" xml:space="preserve"><value>扫描完成于 {0:HH:mm:ss}</value></data>
-  <data name="ScanCanceled" xml:space="preserve"><value>扫描已取消。</value></data>
-  <data name="ScanFailedFormat" xml:space="preserve"><value>扫描失败：{0}</value></data>
-  <data name="ExportSettingsPickerTitle" xml:space="preserve"><value>导出软件设置与角色标记</value></data>
-  <data name="SettingsExportedFormat" xml:space="preserve"><value>软件设置与角色标记已导出：{0}</value></data>
-  <data name="ExportSettingsFailedFormat" xml:space="preserve"><value>导出软件设置失败：{0}</value></data>
-  <data name="ImportSettingsPickerTitle" xml:space="preserve"><value>导入软件设置与角色标记</value></data>
-  <data name="SettingsImported" xml:space="preserve"><value>角色标记已合并导入，同一角色目录以导入的标记为准，本机配置源和备份位置保持不变。</value></data>
-  <data name="ImportSettingsFailedFormat" xml:space="preserve"><value>导入软件设置失败：{0}</value></data>
-  <data name="SelectProfileDirectory" xml:space="preserve"><value>选择 FFXIV 配置根目录</value></data>
-  <data name="ProfileAlreadyExists" xml:space="preserve"><value>该配置目录已经存在。</value></data>
-  <data name="ProfileAddedFormat" xml:space="preserve"><value>已添加配置源「{0}」。</value></data>
-  <data name="AddProfileFailedFormat" xml:space="preserve"><value>添加配置源失败：{0}</value></data>
-  <data name="SelectBackupLibraryDirectory" xml:space="preserve"><value>选择备份库目录</value></data>
-  <data name="BackupLibraryUpdated" xml:space="preserve"><value>已更新备份库目录。</value></data>
-  <data name="SetBackupLibraryFailedFormat" xml:space="preserve"><value>设置备份库失败：{0}</value></data>
-  <data name="ProfileRemoved" xml:space="preserve"><value>已移除自定义配置源，磁盘上的游戏配置未被修改。</value></data>
-  <data name="RemoveProfileFailedFormat" xml:space="preserve"><value>移除配置源失败：{0}</value></data>
-  <data name="OperationInProgress" xml:space="preserve"><value>已有操作正在进行，请稍候。</value></data>
-  <data name="CreateBackupCanceled" xml:space="preserve"><value>创建备份已取消，尚未设置备份库。</value></data>
-  <data name="CreatingBackupFormat" xml:space="preserve"><value>正在为 {0} 创建稳定备份……</value></data>
-  <data name="BackupCreatedFormat" xml:space="preserve"><value>备份创建并校验成功：{0}</value></data>
-  <data name="CreateBackupFailedFormat" xml:space="preserve"><value>创建备份失败：{0}</value></data>
-  <data name="AllBackupsValidFormat" xml:space="preserve"><value>{0} 个备份，全部校验有效</value></data>
-  <data name="BackupSummaryFormat" xml:space="preserve"><value>{0} 个备份 · {1} 个损坏</value></data>
-  <data name="BackupDeletedFormat" xml:space="preserve"><value>已删除备份：{0}</value></data>
-  <data name="DeleteBackupFailedFormat" xml:space="preserve"><value>删除备份失败：{0}</value></data>
-  <data name="TargetCharacterUnavailable" xml:space="preserve"><value>本机没有对应角色，可查看备份，但需先添加同一角色目录才能恢复。</value></data>
-  <data name="RestorePreviewFormat" xml:space="preserve"><value>恢复预览：{0} 个文件将发生变化，{1} 个文件相同</value></data>
-  <data name="BackupPreviewReady" xml:space="preserve"><value>备份已重新校验，恢复预览已生成。</value></data>
-  <data name="PreviewUnavailable" xml:space="preserve"><value>无法生成预览</value></data>
-  <data name="BackupPreviewFailedFormat" xml:space="preserve"><value>备份预览失败：{0}</value></data>
-  <data name="RecoveryPointRequiresLibrary" xml:space="preserve"><value>尚未设置备份库，无法创建恢复点。</value></data>
-  <data name="Restoring" xml:space="preserve"><value>正在创建操作前恢复点并执行事务式恢复……</value></data>
-  <data name="RestoreCompletedFormat" xml:space="preserve"><value>成功恢复 {0} 个文件，恢复点：{1}</value></data>
-  <data name="RestoreCriticalErrorFormat" xml:space="preserve"><value>严重错误：{0}。请使用操作前恢复点手动恢复。</value></data>
-  <data name="RestoreCanceled" xml:space="preserve"><value>恢复已取消，已提交的文件已回滚。</value></data>
-  <data name="RestoreFailedFormat" xml:space="preserve"><value>恢复失败：{0}</value></data>
-  <data name="MigrationPreviewFormat" xml:space="preserve"><value>迁移预览：{0} 个文件将变化，{1} 个文件相同</value></data>
-  <data name="MigrationPreviewReady" xml:space="preserve"><value>迁移预览已生成，确认前不会写入目标角色。</value></data>
-  <data name="MigrationPreviewUnavailable" xml:space="preserve"><value>无法生成迁移预览</value></data>
-  <data name="MigrationPreviewFailedFormat" xml:space="preserve"><value>迁移预览失败：{0}</value></data>
-  <data name="MigrationSelectionChanged" xml:space="preserve"><value>迁移选择已变化，请重新生成预览。</value></data>
-  <data name="MigrationRequiresLibrary" xml:space="preserve"><value>请先设置备份库，以保存迁移源和目标恢复点。</value></data>
-  <data name="PreparingMigration" xml:space="preserve"><value>正在创建迁移源备份和目标恢复点……</value></data>
-  <data name="MigrationCompletedFormat" xml:space="preserve"><value>迁移完成，共迁移 {0} 个文件，目标恢复点：{1}</value></data>
-  <data name="MigrationCriticalErrorFormat" xml:space="preserve"><value>严重错误：{0}</value></data>
-  <data name="MigrationCanceled" xml:space="preserve"><value>迁移已取消，若已开始写入，已提交的文件已回滚。</value></data>
-  <data name="MigrationFailedFormat" xml:space="preserve"><value>迁移失败：{0}</value></data>
-  <data name="CharacterTagCleared" xml:space="preserve"><value>已清除角色标记。</value></data>
-  <data name="CharacterTagSavedFormat" xml:space="preserve"><value>已保存角色标记「{0}」。</value></data>
-  <data name="SaveCharacterTagFailedFormat" xml:space="preserve"><value>保存角色标记失败：{0}</value></data>
-
-  <data name="UnknownSource" xml:space="preserve"><value>未知来源</value></data>
-  <data name="Unavailable" xml:space="preserve"><value>无法读取</value></data>
-  <data name="ManifestUnavailable" xml:space="preserve"><value>Manifest 不可用</value></data>
-  <data name="FileCountAndSizeFormat" xml:space="preserve"><value>{0} 个文件 · {1}</value></data>
-  <data name="KnownFileCountFormat" xml:space="preserve"><value>{0}/{1} 个已知文件</value></data>
-  <data name="IntegrityValid" xml:space="preserve"><value>有效</value></data>
-  <data name="IntegrityCorrupted" xml:space="preserve"><value>损坏</value></data>
-  <data name="TypeBeforeMigration" xml:space="preserve"><value>迁移前恢复点</value></data>
-  <data name="TypeBeforeRestore" xml:space="preserve"><value>恢复前恢复点</value></data>
-  <data name="TypeMigrationSource" xml:space="preserve"><value>迁移源</value></data>
-  <data name="TypeManual" xml:space="preserve"><value>手动备份</value></data>
-  <data name="TypeUnknown" xml:space="preserve"><value>未知类型</value></data>
-  <data name="DifferenceIdentical" xml:space="preserve"><value>相同，不需要覆盖</value></data>
-  <data name="DifferenceDifferent" xml:space="preserve"><value>内容不同，将被覆盖</value></data>
-  <data name="DifferenceMissing" xml:space="preserve"><value>目标缺失，将新增</value></data>
-  <data name="DifferenceTargetUnavailable" xml:space="preserve"><value>未找到对应的本地角色</value></data>
-  <data name="SettingsBackupFileType" xml:space="preserve"><value>FFXIVConfigManager 设置备份</value></data>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>FFXIV 角色配置管理器</value>
+  </data>
+  <data name="AppShortTitle" xml:space="preserve">
+    <value>FFXIV 配置管理器</value>
+  </data>
+  <data name="AppTagline" xml:space="preserve">
+    <value>安全备份与迁移</value>
+  </data>
+  <data name="CurrentStatus" xml:space="preserve">
+    <value>当前状态</value>
+  </data>
+  <data name="Dashboard" xml:space="preserve">
+    <value>概览</value>
+  </data>
+  <data name="Characters" xml:space="preserve">
+    <value>角色管理</value>
+  </data>
+  <data name="Backups" xml:space="preserve">
+    <value>备份与恢复</value>
+  </data>
+  <data name="Migration" xml:space="preserve">
+    <value>角色迁移</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>配置与存储</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>重新扫描</value>
+  </data>
+  <data name="DashboardSubtitle" xml:space="preserve">
+    <value>查看配置状态和备份概况</value>
+  </data>
+  <data name="CharactersSubtitle" xml:space="preserve">
+    <value>管理角色标记并创建配置备份</value>
+  </data>
+  <data name="BackupsSubtitle" xml:space="preserve">
+    <value>校验、查看并恢复历史备份</value>
+  </data>
+  <data name="MigrationSubtitle" xml:space="preserve">
+    <value>在两个角色之间安全迁移配置</value>
+  </data>
+  <data name="SettingsSubtitle" xml:space="preserve">
+    <value>管理配置源和备份存储位置</value>
+  </data>
+  <data name="ProfileSource" xml:space="preserve">
+    <value>配置源</value>
+  </data>
+  <data name="DiscoveredCharacters" xml:space="preserve">
+    <value>已发现角色</value>
+  </data>
+  <data name="ValidBackups" xml:space="preserve">
+    <value>有效备份</value>
+  </data>
+  <data name="CorruptedBackups" xml:space="preserve">
+    <value>损坏备份</value>
+  </data>
+  <data name="SystemStatus" xml:space="preserve">
+    <value>系统状态</value>
+  </data>
+  <data name="ScanResult" xml:space="preserve">
+    <value>扫描结果</value>
+  </data>
+  <data name="PrimaryProfile" xml:space="preserve">
+    <value>主要配置源</value>
+  </data>
+  <data name="BackupStatus" xml:space="preserve">
+    <value>备份状态</value>
+  </data>
+  <data name="BackupLocation" xml:space="preserve">
+    <value>备份位置</value>
+  </data>
+  <data name="CommonActions" xml:space="preserve">
+    <value>常用功能</value>
+  </data>
+  <data name="CharactersCardDescription" xml:space="preserve">
+    <value>查看角色配置文件、设置标记并创建备份。</value>
+  </data>
+  <data name="OpenCharacters" xml:space="preserve">
+    <value>进入角色管理</value>
+  </data>
+  <data name="BackupsCardDescription" xml:space="preserve">
+    <value>查看备份历史、完整性状态和恢复预览。</value>
+  </data>
+  <data name="OpenBackups" xml:space="preserve">
+    <value>查看备份</value>
+  </data>
+  <data name="MigrationCardDescription" xml:space="preserve">
+    <value>选择源角色和目标角色，预览后安全迁移。</value>
+  </data>
+  <data name="StartMigration" xml:space="preserve">
+    <value>开始迁移</value>
+  </data>
+  <data name="ManageProfiles" xml:space="preserve">
+    <value>管理配置源</value>
+  </data>
+  <data name="CharacterTag" xml:space="preserve">
+    <value>角色标记</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="CreateBackup" xml:space="preserve">
+    <value>创建备份</value>
+  </data>
+  <data name="ChangeLocation" xml:space="preserve">
+    <value>更改位置</value>
+  </data>
+  <data name="BackupHistory" xml:space="preserve">
+    <value>备份历史</value>
+  </data>
+  <data name="BackupFilterPlaceholder" xml:space="preserve">
+    <value>按角色、配置源或状态筛选</value>
+  </data>
+  <data name="SelectMigrationCharacters" xml:space="preserve">
+    <value>选择迁移角色</value>
+  </data>
+  <data name="SelectSourceCharacter" xml:space="preserve">
+    <value>选择源角色</value>
+  </data>
+  <data name="SelectTargetCharacter" xml:space="preserve">
+    <value>选择目标角色</value>
+  </data>
+  <data name="MigrationScope" xml:space="preserve">
+    <value>迁移范围</value>
+  </data>
+  <data name="MigrationScopeDescription" xml:space="preserve">
+    <value>默认范围包含 UISAVE.DAT（界面状态与场地标点），但不包含隐私、缓存和物品排序。高级的「全部 14 个已知文件」模式会覆盖 ACQ.DAT、ITEMFDR.DAT、ITEMODR.DAT 等文件，仅建议确认确有需要时使用，迁移前仍会创建目标恢复点。</value>
+  </data>
+  <data name="GenerateMigrationPreview" xml:space="preserve">
+    <value>生成迁移预览</value>
+  </data>
+  <data name="ConfirmMigration" xml:space="preserve">
+    <value>确认迁移</value>
+  </data>
+  <data name="ProfileDescription" xml:space="preserve">
+    <value>配置源是包含 FFXIV_CHR… 角色目录的游戏配置根目录，移除配置源不会删除磁盘文件。</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="ProfileNamePlaceholder" xml:space="preserve">
+    <value>配置源名称</value>
+  </data>
+  <data name="ProfilePathHint" xml:space="preserve">
+    <value>选择包含角色文件夹的配置根目录</value>
+  </data>
+  <data name="SelectAndAddDirectory" xml:space="preserve">
+    <value>选择目录并添加</value>
+  </data>
+  <data name="SoftwareSettingsBackup" xml:space="preserve">
+    <value>软件设置备份</value>
+  </data>
+  <data name="SoftwareSettingsDescription" xml:space="preserve">
+    <value>软件设置备份保存在当前备份目录中，新备份会原子覆盖旧备份，备份和恢复时可选择角色标记或自定义配置源，当前备份位置不会被覆盖。</value>
+  </data>
+  <data name="BackupStorage" xml:space="preserve">
+    <value>备份存储</value>
+  </data>
+  <data name="SelectBackupLocation" xml:space="preserve">
+    <value>选择备份位置</value>
+  </data>
+  <data name="BackupStorageDescription" xml:space="preserve">
+    <value>备份采用开放的 ZIP 格式并包含完整性清单，历史记录可直接从备份文件重建。</value>
+  </data>
+  <data name="PrivacyNotice" xml:space="preserve">
+    <value>只读取配置元数据，不读取聊天日志或解析 DAT 内容，所有覆盖操作均提供预览和恢复路径。</value>
+  </data>
+  <data name="ScopeHud" xml:space="preserve">
+    <value>HUD 与界面</value>
+  </data>
+  <data name="ScopeCharacter" xml:space="preserve">
+    <value>角色设置</value>
+  </data>
+  <data name="ScopeControls" xml:space="preserve">
+    <value>操作与键位</value>
+  </data>
+  <data name="ScopeHotbars" xml:space="preserve">
+    <value>热键栏</value>
+  </data>
+  <data name="ScopeMacros" xml:space="preserve">
+    <value>角色宏</value>
+  </data>
+  <data name="ScopeGearsets" xml:space="preserve">
+    <value>套装列表</value>
+  </data>
+  <data name="ScopeUiState" xml:space="preserve">
+    <value>界面状态与场地标点</value>
+  </data>
+  <data name="ScopeAllKnown" xml:space="preserve">
+    <value>全部 14 个已知文件（高级）</value>
+  </data>
+  <data name="RegionInternational" xml:space="preserve">
+    <value>国际服</value>
+  </data>
+  <data name="RegionChina" xml:space="preserve">
+    <value>国服</value>
+  </data>
+  <data name="RegionOther" xml:space="preserve">
+    <value>其他</value>
+  </data>
+  <data name="PreparingScan" xml:space="preserve">
+    <value>正在准备扫描配置目录……</value>
+  </data>
+  <data name="NoProfileDiscovered" xml:space="preserve">
+    <value>尚未发现配置源</value>
+  </data>
+  <data name="ZeroCharacters" xml:space="preserve">
+    <value>0 个角色</value>
+  </data>
+  <data name="BackupLibraryNotSet" xml:space="preserve">
+    <value>尚未设置备份库</value>
+  </data>
+  <data name="NoBackups" xml:space="preserve">
+    <value>尚无备份</value>
+  </data>
+  <data name="SelectCharactersForMigrationPreview" xml:space="preserve">
+    <value>选择源角色和目标角色后生成迁移预览</value>
+  </data>
+  <data name="Scanning" xml:space="preserve">
+    <value>正在扫描角色配置……</value>
+  </data>
+  <data name="NoAvailableProfile" xml:space="preserve">
+    <value>没有可用的配置源</value>
+  </data>
+  <data name="AddCustomProfileHint" xml:space="preserve">
+    <value>可在配置与存储页面添加自定义配置目录。</value>
+  </data>
+  <data name="NoConfiguredDirectory" xml:space="preserve">
+    <value>当前未配置任何 FFXIV 配置目录。</value>
+  </data>
+  <data name="SummaryFormat" xml:space="preserve">
+    <value>{0} 个角色 · {1} 个配置源</value>
+  </data>
+  <data name="InterruptedTransactionsFormat" xml:space="preserve">
+    <value>检测到无法自动回滚的中断事务：{0}</value>
+  </data>
+  <data name="RecoveredTransactionsFormat" xml:space="preserve">
+    <value>已自动回滚 {0} 个中断的恢复事务。</value>
+  </data>
+  <data name="NoCharacterFound" xml:space="preserve">
+    <value>未发现角色配置目录，登录过角色后可在这里看到配置。</value>
+  </data>
+  <data name="ScanCompletedFormat" xml:space="preserve">
+    <value>扫描完成于 {0:HH:mm:ss}</value>
+  </data>
+  <data name="ScanCanceled" xml:space="preserve">
+    <value>扫描已取消。</value>
+  </data>
+  <data name="ScanFailedFormat" xml:space="preserve">
+    <value>扫描失败：{0}</value>
+  </data>
+  <data name="SelectProfileDirectory" xml:space="preserve">
+    <value>选择 FFXIV 配置根目录</value>
+  </data>
+  <data name="ProfileAlreadyExists" xml:space="preserve">
+    <value>该配置目录已经存在。</value>
+  </data>
+  <data name="ProfileAddedFormat" xml:space="preserve">
+    <value>已添加配置源「{0}」。</value>
+  </data>
+  <data name="AddProfileFailedFormat" xml:space="preserve">
+    <value>添加配置源失败：{0}</value>
+  </data>
+  <data name="SelectBackupLibraryDirectory" xml:space="preserve">
+    <value>选择备份库目录</value>
+  </data>
+  <data name="BackupLibraryUpdated" xml:space="preserve">
+    <value>已更新备份库目录。</value>
+  </data>
+  <data name="SetBackupLibraryFailedFormat" xml:space="preserve">
+    <value>设置备份库失败：{0}</value>
+  </data>
+  <data name="ProfileRemoved" xml:space="preserve">
+    <value>已移除自定义配置源，磁盘上的游戏配置未被修改。</value>
+  </data>
+  <data name="RemoveProfileFailedFormat" xml:space="preserve">
+    <value>移除配置源失败：{0}</value>
+  </data>
+  <data name="OperationInProgress" xml:space="preserve">
+    <value>已有操作正在进行，请稍候。</value>
+  </data>
+  <data name="CreateBackupCanceled" xml:space="preserve">
+    <value>创建备份已取消，尚未设置备份库。</value>
+  </data>
+  <data name="CreatingBackupFormat" xml:space="preserve">
+    <value>正在为 {0} 创建稳定备份……</value>
+  </data>
+  <data name="BackupCreatedFormat" xml:space="preserve">
+    <value>备份创建并校验成功：{0}</value>
+  </data>
+  <data name="CreateBackupFailedFormat" xml:space="preserve">
+    <value>创建备份失败：{0}</value>
+  </data>
+  <data name="AllBackupsValidFormat" xml:space="preserve">
+    <value>{0} 个备份，全部校验有效</value>
+  </data>
+  <data name="BackupSummaryFormat" xml:space="preserve">
+    <value>{0} 个备份 · {1} 个损坏</value>
+  </data>
+  <data name="BackupDeletedFormat" xml:space="preserve">
+    <value>已删除备份：{0}</value>
+  </data>
+  <data name="DeleteBackupFailedFormat" xml:space="preserve">
+    <value>删除备份失败：{0}</value>
+  </data>
+  <data name="RestorePreviewFormat" xml:space="preserve">
+    <value>恢复预览：{0} 个文件将发生变化，{1} 个文件相同</value>
+  </data>
+  <data name="BackupPreviewFailedFormat" xml:space="preserve">
+    <value>备份预览失败：{0}</value>
+  </data>
+  <data name="RestoreCanceled" xml:space="preserve">
+    <value>恢复已取消，已提交的文件已回滚。</value>
+  </data>
+  <data name="RestoreFailedFormat" xml:space="preserve">
+    <value>恢复失败：{0}</value>
+  </data>
+  <data name="MigrationPreviewFormat" xml:space="preserve">
+    <value>迁移预览：{0} 个文件将变化，{1} 个文件相同</value>
+  </data>
+  <data name="MigrationPreviewReady" xml:space="preserve">
+    <value>迁移预览已生成，确认前不会写入目标角色。</value>
+  </data>
+  <data name="MigrationPreviewUnavailable" xml:space="preserve">
+    <value>无法生成迁移预览</value>
+  </data>
+  <data name="MigrationPreviewFailedFormat" xml:space="preserve">
+    <value>迁移预览失败：{0}</value>
+  </data>
+  <data name="MigrationSelectionChanged" xml:space="preserve">
+    <value>迁移选择已变化，请重新生成预览。</value>
+  </data>
+  <data name="MigrationRequiresLibrary" xml:space="preserve">
+    <value>请先设置备份库，以保存迁移源和目标恢复点。</value>
+  </data>
+  <data name="PreparingMigration" xml:space="preserve">
+    <value>正在创建迁移源备份和目标恢复点……</value>
+  </data>
+  <data name="MigrationCompletedFormat" xml:space="preserve">
+    <value>迁移完成，共迁移 {0} 个文件，目标恢复点：{1}</value>
+  </data>
+  <data name="MigrationCriticalErrorFormat" xml:space="preserve">
+    <value>严重错误：{0}</value>
+  </data>
+  <data name="MigrationCanceled" xml:space="preserve">
+    <value>迁移已取消，若已开始写入，已提交的文件已回滚。</value>
+  </data>
+  <data name="MigrationFailedFormat" xml:space="preserve">
+    <value>迁移失败：{0}</value>
+  </data>
+  <data name="CharacterTagCleared" xml:space="preserve">
+    <value>已清除角色标记。</value>
+  </data>
+  <data name="CharacterTagSavedFormat" xml:space="preserve">
+    <value>已保存角色标记「{0}」。</value>
+  </data>
+  <data name="SaveCharacterTagFailedFormat" xml:space="preserve">
+    <value>保存角色标记失败：{0}</value>
+  </data>
+  <data name="UnknownSource" xml:space="preserve">
+    <value>未知来源</value>
+  </data>
+  <data name="KnownFileCountFormat" xml:space="preserve">
+    <value>{0}/{1} 个已知文件</value>
+  </data>
+  <data name="IntegrityValid" xml:space="preserve">
+    <value>有效</value>
+  </data>
+  <data name="IntegrityCorrupted" xml:space="preserve">
+    <value>损坏</value>
+  </data>
+  <data name="TypeBeforeMigration" xml:space="preserve">
+    <value>迁移前恢复点</value>
+  </data>
+  <data name="TypeBeforeRestore" xml:space="preserve">
+    <value>恢复前恢复点</value>
+  </data>
+  <data name="TypeMigrationSource" xml:space="preserve">
+    <value>迁移源</value>
+  </data>
+  <data name="TypeManual" xml:space="preserve">
+    <value>手动备份</value>
+  </data>
+  <data name="TypeUnknown" xml:space="preserve">
+    <value>未知类型</value>
+  </data>
+  <data name="DifferenceIdentical" xml:space="preserve">
+    <value>相同，不需要覆盖</value>
+  </data>
+  <data name="DifferenceDifferent" xml:space="preserve">
+    <value>内容不同，将被覆盖</value>
+  </data>
+  <data name="DifferenceMissing" xml:space="preserve">
+    <value>目标缺失，将新增</value>
+  </data>
+  <data name="DifferenceTargetUnavailable" xml:space="preserve">
+    <value>未找到对应的本地角色</value>
+  </data>
+  <data name="ManageBackups" xml:space="preserve">
+    <value>管理备份</value>
+  </data>
+  <data name="RestoreBackup" xml:space="preserve">
+    <value>恢复备份</value>
+  </data>
+  <data name="NoCharacterBackups" xml:space="preserve">
+    <value>尚无备份</value>
+  </data>
+  <data name="CharacterBackupStatusFormat" xml:space="preserve">
+    <value>{0} 个备份，{1} 个有效，{2} 个损坏，最近备份：{3}</value>
+  </data>
+  <data name="UnidentifiedBackups" xml:space="preserve">
+    <value>无法识别的备份</value>
+  </data>
+  <data name="SelectBackup" xml:space="preserve">
+    <value>选择备份</value>
+  </data>
+  <data name="BackupManagerTitleFormat" xml:space="preserve">
+    <value>{0} 的备份</value>
+  </data>
+  <data name="PreviewSelectedBackup" xml:space="preserve">
+    <value>预览所选备份</value>
+  </data>
+  <data name="RestoreSelectedBackup" xml:space="preserve">
+    <value>恢复所选备份</value>
+  </data>
+  <data name="DeleteSelectedBackup" xml:space="preserve">
+    <value>删除所选备份</value>
+  </data>
+  <data name="ConfirmDeleteSelectedBackup" xml:space="preserve">
+    <value>确认删除所选备份</value>
+  </data>
+  <data name="BackupNotSelected" xml:space="preserve">
+    <value>请选择一份备份。</value>
+  </data>
+  <data name="BackupMustBeValid" xml:space="preserve">
+    <value>所选备份已损坏，无法预览或恢复。</value>
+  </data>
+  <data name="PreviewBeforeRestore" xml:space="preserve">
+    <value>请先预览所选备份，确认差异后再恢复。</value>
+  </data>
+  <data name="RestoreTargetProfile" xml:space="preserve">
+    <value>恢复到配置源</value>
+  </data>
+  <data name="SelectRestoreProfile" xml:space="preserve">
+    <value>本机没有对应角色，请选择要恢复到的配置源。</value>
+  </data>
+  <data name="RestoreSucceededFormat" xml:space="preserve">
+    <value>已恢复 {0} 个文件，操作前恢复点：{1}</value>
+  </data>
+  <data name="RestoreCreatedCharacterFormat" xml:space="preserve">
+    <value>已恢复 {0} 个文件并创建角色目录 {1}。</value>
+  </data>
+  <data name="BackupOptionFormat" xml:space="preserve">
+    <value>{0} · {1} · {2}</value>
+  </data>
+  <data name="SettingsBackupStatusTitle" xml:space="preserve">
+    <value>软件设置备份状态</value>
+  </data>
+  <data name="SettingsBackupMissing" xml:space="preserve">
+    <value>尚未备份软件设置</value>
+  </data>
+  <data name="SettingsBackupValidFormat" xml:space="preserve">
+    <value>备份有效，创建于 {0}，包含：{1}</value>
+  </data>
+  <data name="SettingsBackupCorrupted" xml:space="preserve">
+    <value>软件设置备份已损坏</value>
+  </data>
+  <data name="BackupSoftwareSettings" xml:space="preserve">
+    <value>备份软件设置</value>
+  </data>
+  <data name="RestoreSoftwareSettings" xml:space="preserve">
+    <value>恢复软件设置</value>
+  </data>
+  <data name="SettingsScopeCharacterAliases" xml:space="preserve">
+    <value>角色管理（角色标记）</value>
+  </data>
+  <data name="SettingsScopeCustomProfiles" xml:space="preserve">
+    <value>自定义配置源</value>
+  </data>
+  <data name="SettingsBackupOverwriteNotice" xml:space="preserve">
+    <value>新的软件设置备份会原子覆盖旧备份，未选择的范围不会写入本次备份。</value>
+  </data>
+  <data name="SettingsRestoreNotice" xml:space="preserve">
+    <value>恢复只会覆盖所选范围，未选择的设置和当前备份位置保持不变。</value>
+  </data>
+  <data name="SettingsScopeRequired" xml:space="preserve">
+    <value>请至少选择一个设置范围。</value>
+  </data>
+  <data name="SettingsBackupSucceeded" xml:space="preserve">
+    <value>软件设置备份已更新。</value>
+  </data>
+  <data name="SettingsRestoreSucceeded" xml:space="preserve">
+    <value>软件设置已按所选范围恢复。</value>
+  </data>
+  <data name="SettingsBackupFailedFormat" xml:space="preserve">
+    <value>备份软件设置失败：{0}</value>
+  </data>
+  <data name="SettingsRestoreFailedFormat" xml:space="preserve">
+    <value>恢复软件设置失败：{0}</value>
+  </data>
 </root>

@@ -33,18 +33,30 @@ public sealed class SettingsService(ISettingsStore settingsStore)
         return profile;
     }
 
-    public Task ImportPortableAsync(
-        ApplicationSettings settings,
-        CancellationToken cancellationToken = default) =>
-        UpdateAsync(
+    public Task RestoreBackupAsync(
+        SettingsBackupDocument backup,
+        SettingsBackupScope scopes,
+        CancellationToken cancellationToken = default)
+    {
+        var selectedScopes = scopes & backup.IncludedScopes;
+        if (selectedScopes == SettingsBackupScope.None)
+        {
+            throw new ArgumentException("所选范围不包含可恢复的设置。", nameof(scopes));
+        }
+
+        return UpdateAsync(
             current => current with
             {
-                CharacterAliases = MergeAliases(
-                    current.CharacterAliases,
-                    settings.CharacterAliases),
+                CharacterAliases = selectedScopes.HasFlag(SettingsBackupScope.CharacterAliases)
+                    ? backup.CharacterAliases
+                    : current.CharacterAliases,
+                CustomProfiles = selectedScopes.HasFlag(SettingsBackupScope.CustomProfiles)
+                    ? backup.CustomProfiles
+                    : current.CustomProfiles,
                 SnapshotLibraryPath = current.SnapshotLibraryPath,
             },
             cancellationToken);
+    }
 
     public Task SetSnapshotLibraryPathAsync(
         string libraryPath,
@@ -104,23 +116,6 @@ public sealed class SettingsService(ISettingsStore settingsStore)
                 return settings with { CharacterAliases = aliases };
             },
             cancellationToken);
-
-    private static IReadOnlyList<CharacterAliasSetting> MergeAliases(
-        IReadOnlyList<CharacterAliasSetting> current,
-        IReadOnlyList<CharacterAliasSetting> imported)
-    {
-        var merged = current.ToList();
-        foreach (var alias in imported)
-        {
-            merged.RemoveAll(existing => string.Equals(
-                existing.CharacterFolder,
-                alias.CharacterFolder,
-                StringComparison.OrdinalIgnoreCase));
-            merged.Add(alias);
-        }
-
-        return merged;
-    }
 
     private async Task UpdateAsync(
         Func<ApplicationSettings, ApplicationSettings> update,

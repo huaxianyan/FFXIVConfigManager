@@ -18,7 +18,8 @@ public sealed record SnapshotFileEntry(
 public sealed record SnapshotSource(
     Guid ProfileId,
     string ProfileName,
-    string CharacterFolder);
+    string CharacterFolder,
+    string? CharacterAlias = null);
 
 public sealed record SnapshotManifest(
     int FormatVersion,
@@ -43,9 +44,12 @@ public sealed record SnapshotManifest(
             throw new InvalidDataException("备份 ID 不能为空。");
         }
 
-        if (Source is null || string.IsNullOrWhiteSpace(Source.CharacterFolder))
+        if (Source is null ||
+            Source.ProfileId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(Source.ProfileName) ||
+            string.IsNullOrWhiteSpace(Source.CharacterFolder))
         {
-            throw new InvalidDataException("备份缺少来源角色目录。");
+            throw new InvalidDataException("备份缺少有效的来源角色信息。");
         }
 
         if (Files is null || Files.Count == 0)

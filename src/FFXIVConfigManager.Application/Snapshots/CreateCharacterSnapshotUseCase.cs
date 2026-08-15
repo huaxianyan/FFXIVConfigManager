@@ -14,13 +14,15 @@ public sealed class CreateCharacterSnapshotUseCase(
         CharacterConfiguration character,
         string libraryRoot,
         SnapshotReason reason = SnapshotReason.Manual,
-        CancellationToken cancellationToken = default) =>
+        CancellationToken cancellationToken = default,
+        string? characterAlias = null) =>
         ExecuteSelectedAsync(
             profile,
             character,
             libraryRoot,
             reason,
             definition => definition.IncludedInDefaultBackup,
+            characterAlias,
             cancellationToken);
 
     public Task<CreatedSnapshot> ExecuteAllKnownAsync(
@@ -35,7 +37,8 @@ public sealed class CreateCharacterSnapshotUseCase(
             libraryRoot,
             reason,
             _ => true,
-            cancellationToken);
+            characterAlias: null,
+            cancellationToken: cancellationToken);
 
     public Task<CreatedSnapshot> ExecuteMigrationSourceAsync(
         GameProfile profile,
@@ -51,7 +54,8 @@ public sealed class CreateCharacterSnapshotUseCase(
             definition => scopes.HasFlag(ConfigScope.AllKnownFiles) ||
                           definition.IncludedInSafeMigration &&
                           scopes.HasFlag(definition.Scope),
-            cancellationToken);
+            characterAlias: null,
+            cancellationToken: cancellationToken);
 
     private Task<CreatedSnapshot> ExecuteSelectedAsync(
         GameProfile profile,
@@ -59,6 +63,7 @@ public sealed class CreateCharacterSnapshotUseCase(
         string libraryRoot,
         SnapshotReason reason,
         Func<ConfigFileDefinition, bool> include,
+        string? characterAlias,
         CancellationToken cancellationToken)
     {
         if (!character.BelongsTo(profile))
@@ -92,7 +97,8 @@ public sealed class CreateCharacterSnapshotUseCase(
             new SnapshotSource(
                 profile.Id,
                 profile.Name,
-                character.FolderName.Value),
+                character.FolderName.Value,
+                string.IsNullOrWhiteSpace(characterAlias) ? null : characterAlias.Trim()),
             files);
 
         return archiveService.CreateAsync(request, cancellationToken);

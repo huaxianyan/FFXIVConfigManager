@@ -29,6 +29,59 @@ public sealed class SettingsServiceTests
     }
 
     [Fact]
+    public async Task RestoreBackup_ReplacesOnlySelectedScopeAndPreservesLibraryPath()
+    {
+        var currentProfile = new GameProfile(Guid.NewGuid(), "当前", GameRegion.Custom, "/current");
+        var backupProfile = new GameProfile(Guid.NewGuid(), "备份", GameRegion.Custom, "/backup");
+        var currentAlias = new CharacterAliasSetting(
+            currentProfile.Id,
+            "FFXIV_CHR0000000000000001",
+            "当前标记");
+        var backupAlias = new CharacterAliasSetting(
+            backupProfile.Id,
+            "FFXIV_CHR0000000000000002",
+            "备份标记");
+        var store = new MemorySettingsStore(new ApplicationSettings(
+            ApplicationSettings.CurrentSchemaVersion,
+            [currentProfile],
+            [currentAlias])
+        {
+            SnapshotLibraryPath = "/local/backups",
+        });
+        var service = new SettingsService(store);
+        var backup = new SettingsBackupDocument(
+            SettingsBackupDocument.CurrentFormatVersion,
+            DateTimeOffset.UtcNow,
+            SettingsBackupScope.All,
+            [backupProfile],
+            [backupAlias]);
+
+        await service.RestoreBackupAsync(backup, SettingsBackupScope.CustomProfiles);
+
+        var restored = await service.GetAsync();
+        Assert.Equal([backupProfile], restored.CustomProfiles);
+        Assert.Equal([currentAlias], restored.CharacterAliases);
+        Assert.Equal("/local/backups", restored.SnapshotLibraryPath);
+    }
+
+    [Fact]
+    public async Task RestoreBackup_RejectsScopeNotIncludedInBackup()
+    {
+        var store = new MemorySettingsStore();
+        var service = new SettingsService(store);
+        var backup = new SettingsBackupDocument(
+            SettingsBackupDocument.CurrentFormatVersion,
+            DateTimeOffset.UtcNow,
+            SettingsBackupScope.CharacterAliases,
+            [],
+            []);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.RestoreBackupAsync(backup, SettingsBackupScope.CustomProfiles));
+        Assert.Same(ApplicationSettings.Empty, await service.GetAsync());
+    }
+
+    [Fact]
     public async Task SetSnapshotLibraryPath_PersistsNormalizedPath()
     {
         var store = new MemorySettingsStore();
@@ -51,43 +104,6 @@ public sealed class SettingsServiceTests
         await service.SetCharacterAliasAsync(profileId, folder, "  ");
 
         Assert.Empty((await service.GetAsync()).CharacterAliases);
-    }
-
-    [Fact]
-    public async Task ImportPortable_MergesAliasesByCharacterFolderAndPreservesLocalPaths()
-    {
-        var localProfile = new GameProfile(Guid.NewGuid(), "本机", GameRegion.Custom, "/local");
-        var localFolder = "FFXIV_CHR0000000000000001";
-        var untouchedFolder = "FFXIV_CHR0000000000000002";
-        var store = new MemorySettingsStore(new ApplicationSettings(
-            ApplicationSettings.CurrentSchemaVersion,
-            [localProfile],
-            [
-                new CharacterAliasSetting(localProfile.Id, localFolder, "旧标记"),
-                new CharacterAliasSetting(localProfile.Id, untouchedFolder, "保留标记"),
-            ])
-        {
-            SnapshotLibraryPath = "/local/backups",
-        });
-        var service = new SettingsService(store);
-        var imported = new ApplicationSettings(
-            ApplicationSettings.CurrentSchemaVersion,
-            [new GameProfile(Guid.NewGuid(), "另一设备", GameRegion.Custom, "/other")],
-            [new CharacterAliasSetting(Guid.NewGuid(), localFolder, "导入标记")])
-        {
-            SnapshotLibraryPath = "/other/backups",
-        };
-
-        await service.ImportPortableAsync(imported);
-
-        var saved = await service.GetAsync();
-        Assert.Equal("/local/backups", saved.SnapshotLibraryPath);
-        Assert.Equal([localProfile], saved.CustomProfiles);
-        Assert.Equal(2, saved.CharacterAliases.Count);
-        Assert.Contains(saved.CharacterAliases, alias =>
-            alias.CharacterFolder == localFolder && alias.Alias == "导入标记");
-        Assert.Contains(saved.CharacterAliases, alias =>
-            alias.CharacterFolder == untouchedFolder && alias.Alias == "保留标记");
     }
 
     private sealed class MemorySettingsStore : ISettingsStore

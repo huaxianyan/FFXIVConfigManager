@@ -32,6 +32,28 @@ public sealed class CreateCharacterSnapshotUseCaseTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WritesTrimmedCharacterAliasToSnapshotSource()
+    {
+        var profile = new GameProfile(Guid.NewGuid(), "测试", GameRegion.Custom, "/config");
+        var character = new CharacterConfiguration(
+            profile.Id,
+            CharacterFolderName.Create("FFXIV_CHR0000000000000001"),
+            "/config/FFXIV_CHR0000000000000001",
+            DateTimeOffset.UtcNow,
+            [CreateFile("ADDON.DAT")]);
+        var archive = new CapturingArchiveService();
+        var useCase = new CreateCharacterSnapshotUseCase(archive, TimeProvider.System);
+
+        await useCase.ExecuteAsync(
+            profile,
+            character,
+            "/library",
+            characterAlias: "  测试角色  ");
+
+        Assert.Equal("测试角色", archive.Request!.Source.CharacterAlias);
+    }
+
+    [Fact]
     public async Task ExecuteMigrationSourceAsync_AllKnownModeIncludesPrivateCacheAndUiSave()
     {
         var profile = new GameProfile(Guid.NewGuid(), "测试", GameRegion.Custom, "/config");

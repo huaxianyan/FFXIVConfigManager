@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FFXIVConfigManager.Desktop.ViewModels"
+        xmlns:l10n="using:FFXIVConfigManager.Desktop.Localization"
+        x:Class="FFXIVConfigManager.Desktop.Views.CharacterBackupsWindow"
+        x:DataType="vm:CharacterBackupsViewModel"
+        Width="900"
+        Height="680"
+        MinWidth="760"
+        MinHeight="540"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding Title}">
+    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="16">
+        <StackPanel Spacing="4">
+            <TextBlock FontSize="24" FontWeight="SemiBold" Text="{Binding Title}" />
+            <TextBlock Opacity="0.65" Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
+            <ComboBox ItemsSource="{Binding Backups}"
+                      SelectedItem="{Binding SelectedBackup}"
+                      PlaceholderText="{l10n:Tr SelectBackup}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:BackupOptionViewModel">
+                        <TextBlock Text="{Binding DisplayName}" ToolTip.Tip="{Binding Details}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="1" Command="{Binding PreviewCommand}"
+                    Content="{l10n:Tr PreviewSelectedBackup}" />
+            <Button Grid.Column="2" Command="{Binding RestoreCommand}"
+                    Content="{l10n:Tr RestoreSelectedBackup}" />
+            <Button Grid.Column="3" Command="{Binding DeleteCommand}"
+                    Content="{Binding DeleteButtonText}" />
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <TextBlock VerticalAlignment="Center" Text="{l10n:Tr RestoreTargetProfile}" />
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding TargetProfiles}"
+                      SelectedItem="{Binding SelectedTargetProfile}"
+                      IsEnabled="{Binding CanSelectTargetProfile}"
+                      PlaceholderText="{l10n:Tr SelectRestoreProfile}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:GameProfileOptionViewModel">
+                        <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </Grid>
+
+        <Border Grid.Row="3" Padding="16" CornerRadius="10" BorderThickness="1"
+                BorderBrush="#40808080" Background="#0A808080">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding PreviewFiles}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SnapshotFilePreviewViewModel">
+                            <Grid Margin="0,5" ColumnDefinitions="200,120,*">
+                                <TextBlock FontFamily="Cascadia Mono,Consolas" Text="{Binding FileName}" />
+                                <TextBlock Grid.Column="1" Opacity="0.65" Text="{Binding SnapshotSize}" />
+                                <TextBlock Grid.Column="2" Text="{Binding DifferenceText}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+    </Grid>
+</Window>
