@@ -1,100 +1,139 @@
 # FFXIVConfigManager
 
-跨平台的 FINAL FANTASY XIV 角色配置管理工具。
+FFXIVConfigManager 是一款面向 FINAL FANTASY XIV 玩家的角色配置管理工具，用于备份、恢复和迁移角色设置、角色形象与套装即时肖像。
 
-## 项目目标
+当前正式支持 **Windows 10/11 x64**。Linux 和 macOS 尚未完成兼容性验证。
 
-- 管理多个 FFXIV 配置目录和角色配置。
-- 创建可校验、可回滚的版本化配置备份。
-- 按配置类别在角色之间迁移设置。
-- 首先支持 Windows，并为 Linux 和 macOS 保留跨平台能力。
+> 本项目是非官方社区工具，与 Square Enix 不存在隶属、授权、认可或赞助关系。
 
-## 技术栈
+## 下载与使用
 
-- C# / .NET 10 LTS
-- Avalonia UI 12
-- CommunityToolkit.Mvvm
-- xUnit
-
-项目采用模块化单体结构，Domain、Application 和通用 Infrastructure 不依赖具体桌面平台，Windows 专有能力位于独立平台项目中。
-
-## 当前进度
-
-已完成第一条可运行的垂直功能链路：
-
-- 自动发现 Windows 国际服默认配置目录。
-- 添加和移除国服、国际服或其他自定义配置源。
-- 使用 `%LOCALAPPDATA%/FFXIVConfigManager/settings.json` 持久化用户设置。
-- 原子写入设置文件，并拒绝读取高于当前程序支持版本的数据。
-- 扫描并验证 `FFXIV_CHR` 角色目录。
-- 为不同配置源下的角色保存独立标记，并可只显示有标记的角色；筛选状态会持久化。
-- 识别 14 类已知角色配置文件。
-- 默认忽略聊天日志、`.old` 文件、隐私数据、缓存和未知文件。
-- 创建版本化 `.ffxivconfig.zip` 角色备份。
-- 在读取前后检查文件大小和修改时间，变化时自动重试。
-- 使用 Manifest 记录来源、时间、文件大小、时间戳和 SHA-256。
-- 创建完成后立即重新读取归档并进行完整性校验。
-- 拒绝路径穿越、重复条目、未声明条目和超限归档。
-- 从备份及其 Manifest 重建历史索引，不依赖不可恢复的数据库。
-- 以角色为单位汇总备份数量、完整性和最近备份时间，并支持按角色、配置源和状态筛选。
-- 角色管理和备份页面通过独立次级窗口选择具体备份，预览后可执行恢复或删除。
-- 在恢复前重新校验备份，并逐文件比较当前角色的稳定 SHA-256。
-- 恢复前自动创建目标恢复点，使用暂存、事务日志、逐文件替换和写后校验。
-- 写入失败或取消时自动回滚，启动时继续处理意外中断的恢复事务。
-- 支持在任意两个本地角色之间按安全配置范围预览和迁移。
-- 默认迁移 `UISAVE.DAT` 中的界面状态与场地标点，并提供全部 14 个已知文件高级模式。
-- 迁移时同时保存迁移源备份与目标操作前恢复点。
-- 在备份目录中维护单份软件设置备份，可按角色标记或自定义配置源选择备份和恢复范围。
-- 读取配置根目录中的 40 个角色形象栏位，并以种族、性别和备注作为辅助识别信息。
-- 角色形象备份与源栏位解耦，支持种族和性别组合筛选以及备注搜索。
-- 恢复角色形象时选择目标栏位，覆盖前预览现有数据、二次确认并自动创建恢复点。
-- 启动时或按需检查 GitHub Release，下载并校验新版本后从任意可写的解压目录事务性更新和重启。
-- 支持查看和删除任意历史备份，本机缺少对应角色时仍可查看备份内容。
-- 不因检测到 FFXIV 或 XIVLauncher 正在运行而限制操作。
-- 单实例运行并保存本地诊断日志。
-- 在 Avalonia 桌面界面展示角色、已知文件数量和最后修改时间。
-- 将桌面端用户文案集中到标准 `.resx` 资源，为后续 i18n 扩展保留清晰边界。
-- 为 Domain、Application、设置存储、备份、恢复事务和迁移提供自动化测试。
-
-项目首个版本正式支持 Windows，Linux 和 macOS 尚未进行兼容性验证。
-
-## 开发
-
-需要安装 .NET 10 SDK。本地化资源结构和文案规则见 [`docs/localization.md`](docs/localization.md)，角色形象备份格式见 [`docs/appearance-backup-format.md`](docs/appearance-backup-format.md)，自动更新的校验、替换和回滚流程见 [`docs/automatic-update.md`](docs/automatic-update.md)。
-
-```powershell
-dotnet restore
-dotnet build FFXIVConfigManager.sln
-dotnet test FFXIVConfigManager.sln
-dotnet run --project src/FFXIVConfigManager.Desktop
-```
-
-创建 Windows 便携包：
-
-```powershell
-./scripts/publish-windows.ps1
-```
-
-输出位于：
+从 [GitHub Releases](https://github.com/huaxianyan/FFXIVConfigManager/releases) 下载最新的 Windows 便携包：
 
 ```text
-artifacts/FFXIVConfigManager-win-x64.zip
+FFXIVConfigManager-win-x64.zip
 ```
 
-## 发布
+解压到任意可写目录后，直接运行：
 
-推送符合 `v<major>.<minor>.<patch>` 格式的标签后，GitHub Actions 会自动执行格式检查、Release 构建和全部测试。验证通过后，工作流创建对应的 GitHub Release，并上传以下文件：
-
-- `FFXIVConfigManager-win-x64.zip`
-- `FFXIVConfigManager-win-x64.zip.sha256`
-
-例如发布 `0.1.0`：
-
-```powershell
-git tag -a v0.1.0 -m "FFXIVConfigManager 0.1.0"
-git push origin v0.1.0
+```text
+FFXIVConfigManager.exe
 ```
+
+程序不要求固定安装目录。便携包同时包含 README、法律声明和开源许可证，请与程序一并保留。建议首次使用时先设置独立的备份位置，并在执行恢复或迁移前确认来源、目标和预览内容。
+
+## 主要功能
+
+### 多配置源与角色管理
+
+- 自动发现 Windows 国际服默认配置目录。
+- 支持添加国服、国际服和其他自定义配置源。
+- 为不同配置源中的角色设置独立标记。
+- 支持只显示已标记角色，便于管理多账号和多角色。
+- 游戏或 XIVLauncher 运行期间仍允许备份、恢复和迁移。
+
+### 角色配置备份与恢复
+
+- 为角色设置创建可校验的历史备份。
+- 按角色集中查看、预览、恢复和删除备份。
+- 即使本机暂时不存在原角色，也可以查看备份并恢复到选定配置源。
+- 覆盖前自动创建恢复点。
+- 操作失败、取消或意外中断时自动回滚。
+- 默认不收集聊天日志、缓存和未知隐私数据。
+
+### 角色配置迁移
+
+- 在两个本地角色之间选择配置范围并生成差异预览。
+- 可迁移 HUD、角色设置、操作设置、热键栏、宏、套装和界面状态等内容。
+- 迁移前保存来源备份和目标恢复点。
+- 来源、目标或迁移范围变化后，旧预览会立即失效，必须重新确认。
+
+### 角色形象
+
+这里的「角色形象」是游戏中的 `01～40` 号外观预设栏位。
+
+- 左栏固定为游戏配置源，右栏默认是角色形象备份区。
+- 右栏也可以切换为另一个配置源，支持配置源之间迁移。
+- 支持切换操作方向，同时保留两栏现有选择。
+- 显示全部 40 个栏位，并明确区分空栏位、有效栏位和无法读取的栏位。
+- 支持按种族、性别和形象备注筛选、搜索备份。
+- 角色形象备份与原始栏位解耦，可恢复到任意选定栏位。
+- 覆盖已有栏位前需要二次确认，并自动保存覆盖前恢复点。
+
+### 肖像管理
+
+这里的「肖像」是与角色套装关联的即时肖像，与角色形象预设是两套不同功能。
+
+- 按真实套装编号展示职业图标、原始套装名称和肖像更新时间。
+- 一条肖像对应一个独立备份方案。
+- 创建方案时必须填写方案名称和备注。
+- 备份区只显示方案名称、备注和备份时间，并支持搜索和删除。
+- 支持角色到备份区的备份、备份区到角色的恢复，以及两个角色之间的迁移。
+- 可以切换操作方向，不需要重新选择两栏数据源。
+- 恢复和迁移必须明确选择来源肖像与目标套装肖像。
+- 目标套装编号、职业、名称和关联不会被来源备份覆盖。
+
+### 软件设置与自动更新
+
+- 可备份和恢复角色标记、自定义配置源等软件设置。
+- 启动时或按需检查 GitHub Release。
+- 下载完成后校验更新包并自动替换、重启。
+- 更新失败时保留或恢复旧版本。
+- 支持任意可写的便携目录，不依赖安装器或注册表。
+
+## 数据安全与隐私
+
+- 备份内容以开放 ZIP 和 JSON Manifest 保存，可以独立检查。
+- 覆盖操作会提供明确目标、二次确认和恢复路径。
+- 文件在读取期间持续变化时会重试或拒绝操作，不生成已知不完整的备份。
+- 不会因为检测到游戏进程而阻止操作，也不会结束、注入或操控游戏进程。
+- 默认不备份聊天日志。
+- 诊断日志保存在本机，不自动上传。
+
+在处理真实数据前，建议阅读 [Windows 手动验收计划](docs/manual-test-plan.md)，并先使用复制到沙盒中的角色配置进行验证。
+
+## 文档
+
+README 只介绍用户功能。格式、事务、架构和开发说明位于独立文档：
+
+| 文档 | 内容 |
+| --- | --- |
+| [开发与发布](docs/development.md) | 技术栈、项目结构、构建、测试和自动发布 |
+| [文件事务](docs/file-transactions.md) | 稳定读取、恢复点、提交和失败回滚 |
+| [角色配置备份格式](docs/snapshot-format.md) | 角色备份归档和 Manifest |
+| [软件设置备份格式](docs/settings-backup-format.md) | 设置备份范围和文件格式 |
+| [角色形象备份格式](docs/appearance-backup-format.md) | 形象预设归档和恢复规则 |
+| [肖像存储边界](docs/portrait-storage.md) | 套装与即时肖像的存储证据和限制 |
+| [肖像备份格式](docs/portrait-backup-format.md) | 单条肖像方案和恢复语义 |
+| [自动更新](docs/automatic-update.md) | 下载、校验、自替换和回滚 |
+| [本地化](docs/localization.md) | 文案与资源组织方式 |
+| [手动验收计划](docs/manual-test-plan.md) | Windows 功能验收步骤 |
+| [法律声明](docs/legal.md) | Square Enix 商标、游戏资源和第三方许可证 |
+
+## FINAL FANTASY XIV 与 Square Enix 声明
+
+FINAL FANTASY XIV 及相关名称、商标、图像、职业图标和其他游戏资源的权利归其各自权利人所有。
+
+> FINAL FANTASY is a registered trademark of Square Enix Holdings Co., Ltd.
+>
+> © SQUARE ENIX
+
+仓库中的 FFXIV 职业图标不适用本项目的 GPL v3，其使用受 Square Enix 的 [FINAL FANTASY XIV Materials Usage License](https://support.na.square-enix.com/rule.php?id=5382&tag=authc) 约束。该许可包含对游戏素材的非商业使用限制。
+
+因此，**项目原创代码允许商业使用，不代表 Square Enix 游戏资源也获得商业授权**。计划商业分发时，应取得必要授权，或者移除、替换仓库中的相关游戏资源。完整说明见 [法律声明](docs/legal.md)。
+
+## 开源许可证
+
+除明确标注的第三方内容和 Square Enix 游戏资源外，本项目的原创源代码、构建脚本、原创文档和原创应用图标采用 [GNU General Public License v3.0 only](LICENSE)：
+
+- 允许个人和商业使用。
+- 允许收费分发和提供商业服务。
+- 分发本项目或衍生版本时，必须提供对应源代码。
+- 受 GPL 覆盖的衍生作品必须继续使用 GPL v3。
+- 不提供任何明示或默示担保。
+
+版权 © 2026 huaxianyan 及项目贡献者。
 
 ## 旧版本
 
-旧版项目 [`huaxianyan/ff14-ccmt`](https://github.com/huaxianyan/ff14-ccmt) 已停止维护并归档，新项目不会复制旧版代码、构建产物、日志或用户数据。
+旧版项目 [`huaxianyan/ff14-ccmt`](https://github.com/huaxianyan/ff14-ccmt) 已停止维护并归档。新项目不会复制旧版代码、构建产物、日志或用户数据。

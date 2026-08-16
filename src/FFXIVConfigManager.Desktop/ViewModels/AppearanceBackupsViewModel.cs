@@ -13,8 +13,10 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
     private readonly IAppearanceBackupService _service;
     private readonly string _libraryRoot;
     private readonly ITextLocalizer _text;
-    private readonly List<AppearanceBackupItemViewModel> _allBackups = [];
     private readonly Dictionary<Guid, IReadOnlyList<AppearanceSlot>> _profileSlots = [];
+    private readonly List<AppearanceListItemViewModel> _allRightItems = [];
+    private int _leftLoadVersion;
+    private int _rightLoadVersion;
 
     public AppearanceBackupsViewModel(
         IReadOnlyList<GameProfile> profiles,
@@ -25,8 +27,12 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
         _service = service;
         _libraryRoot = libraryRoot;
         _text = text;
-        IsBusy = true;
         Profiles = profiles.Select(AppearanceProfileOptionViewModel.From).ToArray();
+        RightSources =
+        [
+            new AppearanceRightSourceOptionViewModel(null, text["AppearanceBackupArea"]),
+            .. Profiles.Select(profile => new AppearanceRightSourceOptionViewModel(profile, profile.DisplayName)),
+        ];
         RaceFilters =
         [
             new(null, text["AllRaces"]),
@@ -39,47 +45,50 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
             new(AppearanceGender.Male, text["GenderMale"]),
             new(AppearanceGender.Female, text["GenderFemale"]),
         ];
-        TargetSlots = Enumerable.Range(1, AppearanceData.MaximumSlot)
-            .Select(slot => new AppearanceTargetSlotViewModel(slot, text.Format("AppearanceSlotFormat", slot)))
-            .ToArray();
         SelectedRaceFilter = RaceFilters[0];
         SelectedGenderFilter = GenderFilters[0];
-        SelectedSourceProfile = Profiles.FirstOrDefault();
-        SelectedTargetProfile = Profiles.FirstOrDefault();
-        SelectedTargetSlot = TargetSlots[0];
-        StatusMessage = text["LoadingAppearanceData"];
-        IsBusy = false;
+        SelectedLeftProfile = Profiles.FirstOrDefault();
+        SelectedRightSource = RightSources.FirstOrDefault();
+        StatusMessage = text["AppearanceDualListHint"];
     }
 
     public IReadOnlyList<AppearanceProfileOptionViewModel> Profiles { get; }
+
+    public IReadOnlyList<AppearanceRightSourceOptionViewModel> RightSources { get; }
 
     public IReadOnlyList<AppearanceRaceFilterViewModel> RaceFilters { get; }
 
     public IReadOnlyList<AppearanceGenderFilterViewModel> GenderFilters { get; }
 
-    public IReadOnlyList<AppearanceTargetSlotViewModel> TargetSlots { get; }
+    public ObservableCollection<AppearanceListItemViewModel> LeftItems { get; } = [];
 
-    public ObservableCollection<AppearanceSourceSlotViewModel> SourceSlots { get; } = [];
-
-    public ObservableCollection<AppearanceBackupItemViewModel> Backups { get; } = [];
+    public ObservableCollection<AppearanceListItemViewModel> RightItems { get; } = [];
 
     public bool Changed { get; private set; }
 
     [ObservableProperty]
-    public partial AppearanceProfileOptionViewModel? SelectedSourceProfile { get; set; }
+    [NotifyPropertyChangedFor(nameof(LeftPanelTitle))]
+    [NotifyPropertyChangedFor(nameof(RightPanelTitle))]
+    [NotifyPropertyChangedFor(nameof(OperationName))]
+    [NotifyCanExecuteChangedFor(nameof(ExecuteOperationCommand))]
+    public partial AppearanceProfileOptionViewModel? SelectedLeftProfile { get; set; }
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
-    public partial AppearanceProfileOptionViewModel? SelectedTargetProfile { get; set; }
+    [NotifyPropertyChangedFor(nameof(IsRightBackupArea))]
+    [NotifyPropertyChangedFor(nameof(IsBackupOperation))]
+    [NotifyPropertyChangedFor(nameof(OperationName))]
+    [NotifyCanExecuteChangedFor(nameof(ExecuteOperationCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteBackupCommand))]
+    public partial AppearanceRightSourceOptionViewModel? SelectedRightSource { get; set; }
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
-    public partial AppearanceTargetSlotViewModel? SelectedTargetSlot { get; set; }
+    [NotifyCanExecuteChangedFor(nameof(ExecuteOperationCommand))]
+    public partial AppearanceListItemViewModel? SelectedLeftItem { get; set; }
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
-    [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
-    public partial AppearanceBackupItemViewModel? SelectedBackup { get; set; }
+    [NotifyCanExecuteChangedFor(nameof(ExecuteOperationCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteBackupCommand))]
+    public partial AppearanceListItemViewModel? SelectedRightItem { get; set; }
 
     [ObservableProperty]
     public partial AppearanceRaceFilterViewModel SelectedRaceFilter { get; set; }
@@ -91,41 +100,81 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
     public partial string SearchText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
-    [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
+    [NotifyPropertyChangedFor(nameof(OperationName))]
+    [NotifyPropertyChangedFor(nameof(DirectionSymbol))]
+    [NotifyPropertyChangedFor(nameof(LeftPanelTitle))]
+    [NotifyPropertyChangedFor(nameof(RightPanelTitle))]
+    [NotifyPropertyChangedFor(nameof(IsBackupOperation))]
+    [NotifyCanExecuteChangedFor(nameof(ExecuteOperationCommand))]
+    public partial bool IsDirectionReversed { get; private set; }
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ExecuteOperationCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteBackupCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SwapDirectionCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     public partial bool IsBusy { get; private set; }
 
     [ObservableProperty]
     public partial string StatusMessage { get; private set; }
 
     [ObservableProperty]
-    public partial string TargetPreview { get; private set; } = string.Empty;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(RestoreButtonText))]
+    [NotifyPropertyChangedFor(nameof(OperationName))]
+    [NotifyCanExecuteChangedFor(nameof(ExecuteOperationCommand))]
     public partial bool IsOverwriteArmed { get; private set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeleteButtonText))]
     public partial bool IsDeleteArmed { get; private set; }
 
-    public string RestoreButtonText => IsOverwriteArmed
-        ? _text["ConfirmOverwriteAppearance"]
-        : _text["RestoreToSelectedSlot"];
+    public bool IsRightBackupArea => SelectedRightSource?.IsBackupArea == true;
+
+    public bool IsBackupOperation => GetOperationKind() == AppearanceOperationKind.Backup;
+
+    public string DirectionSymbol => IsDirectionReversed ? "←" : "→";
+
+    public string LeftPanelTitle => IsDirectionReversed
+        ? _text["AppearanceTarget"]
+        : _text["AppearanceSource"];
+
+    public string RightPanelTitle => IsDirectionReversed
+        ? _text["AppearanceSource"]
+        : _text["AppearanceTarget"];
 
     public string DeleteButtonText => IsDeleteArmed
         ? _text["ConfirmDeleteAppearanceBackup"]
         : _text["DeleteAppearanceBackup"];
+
+    public string OperationName
+    {
+        get
+        {
+            var label = GetOperationKind() switch
+            {
+                AppearanceOperationKind.Backup => _text["BackupSelectedAppearance"],
+                AppearanceOperationKind.Restore => IsOverwriteArmed
+                    ? _text["ConfirmOverwriteAppearance"]
+                    : _text["RestoreSelectedAppearance"],
+                AppearanceOperationKind.Migrate => IsOverwriteArmed
+                    ? _text["ConfirmOverwriteAppearance"]
+                    : _text["MigrateSelectedAppearance"],
+                _ => _text["SelectAppearanceOperation"],
+            };
+            return GetOperationKind() == AppearanceOperationKind.None || IsOverwriteArmed
+                ? label
+                : IsDirectionReversed ? $"← {label}" : $"{label} →";
+        }
+    }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         IsBusy = true;
         try
         {
-            await LoadSourceSlotsAsync(cancellationToken);
-            await EnsureTargetSlotsAsync(cancellationToken);
-            await ReloadBackupsAsync(cancellationToken);
-            StatusMessage = _text.Format("AppearanceBackupCountFormat", _allBackups.Count);
+            await Task.WhenAll(
+                ReloadLeftAsync(cancellationToken),
+                ReloadRightAsync(cancellationToken));
+            StatusMessage = _text["AppearanceDualListHint"];
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -137,51 +186,88 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
         }
     }
 
-    partial void OnSelectedSourceProfileChanged(AppearanceProfileOptionViewModel? value)
+    partial void OnSelectedLeftProfileChanged(AppearanceProfileOptionViewModel? value)
     {
-        if (!IsBusy)
+        SelectedLeftItem = null;
+        CancelConfirmations();
+        _ = ReloadLeftAsync();
+    }
+
+    partial void OnSelectedRightSourceChanged(AppearanceRightSourceOptionViewModel? value)
+    {
+        SelectedRightItem = null;
+        CancelConfirmations();
+        _ = ReloadRightAsync();
+    }
+
+    partial void OnSelectedLeftItemChanged(AppearanceListItemViewModel? value) =>
+        CancelOverwriteConfirmation();
+
+    partial void OnSelectedRightItemChanged(AppearanceListItemViewModel? value)
+    {
+        CancelOverwriteConfirmation();
+        CancelDeleteConfirmation();
+    }
+
+    partial void OnSelectedRaceFilterChanged(AppearanceRaceFilterViewModel value)
+    {
+        CancelDeleteConfirmation();
+        ApplyRightFilters();
+    }
+
+    partial void OnSelectedGenderFilterChanged(AppearanceGenderFilterViewModel value)
+    {
+        CancelDeleteConfirmation();
+        ApplyRightFilters();
+    }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        CancelDeleteConfirmation();
+        ApplyRightFilters();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanSwapDirection))]
+    private void SwapDirection()
+    {
+        IsDirectionReversed = !IsDirectionReversed;
+        CancelConfirmations();
+        ExecuteOperationCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanSwapDirection() => !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanRefresh))]
+    private async Task RefreshAsync(CancellationToken cancellationToken)
+    {
+        IsBusy = true;
+        try
         {
-            _ = LoadSourceSlotsSafelyAsync();
+            _profileSlots.Clear();
+            await Task.WhenAll(
+                ReloadLeftAsync(cancellationToken),
+                ReloadRightAsync(cancellationToken));
+            StatusMessage = _text["AppearanceDualListHint"];
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            StatusMessage = _text.Format("LoadAppearanceDataFailedFormat", exception.Message);
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 
-    partial void OnSelectedTargetProfileChanged(AppearanceProfileOptionViewModel? value)
+    private bool CanRefresh() => !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanExecuteOperation))]
+    private async Task ExecuteOperationAsync(CancellationToken cancellationToken)
     {
-        ResetRestoreConfirmation();
-        if (!IsBusy)
-        {
-            _ = UpdateTargetPreviewSafelyAsync();
-        }
-    }
-
-    partial void OnSelectedTargetSlotChanged(AppearanceTargetSlotViewModel? value)
-    {
-        ResetRestoreConfirmation();
-        if (!IsBusy)
-        {
-            _ = UpdateTargetPreviewSafelyAsync();
-        }
-    }
-
-    partial void OnSelectedBackupChanged(AppearanceBackupItemViewModel? value)
-    {
-        ResetRestoreConfirmation();
-        IsDeleteArmed = false;
-    }
-
-    partial void OnSelectedRaceFilterChanged(AppearanceRaceFilterViewModel value) => ApplyFilters();
-
-    partial void OnSelectedGenderFilterChanged(AppearanceGenderFilterViewModel value) => ApplyFilters();
-
-    partial void OnSearchTextChanged(string value) => ApplyFilters();
-
-    [RelayCommand(CanExecute = nameof(CanRestore))]
-    private async Task RestoreAsync(CancellationToken cancellationToken)
-    {
-        var target = SelectedTargetProfile!;
-        var slot = SelectedTargetSlot!.Slot;
-        var occupied = await GetTargetSlotAsync(target.Profile, slot, cancellationToken) is not null;
-        if (occupied && !IsOverwriteArmed)
+        var kind = GetOperationKind();
+        var target = GetTargetItem();
+        if (kind is AppearanceOperationKind.Restore or AppearanceOperationKind.Migrate &&
+            target?.IsOccupied == true && !IsOverwriteArmed)
         {
             IsOverwriteArmed = true;
             StatusMessage = _text["OverwriteAppearanceWarning"];
@@ -189,21 +275,23 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
         }
 
         IsBusy = true;
+        ResetConfirmations();
         try
         {
-            var result = await _service.RestoreAsync(
-                SelectedBackup!.Entry,
-                target.Profile.ConfigRoot,
-                slot,
-                _libraryRoot,
-                cancellationToken);
-            Changed = true;
-            _profileSlots.Remove(target.Profile.Id);
-            await EnsureTargetSlotsAsync(cancellationToken);
-            await ReloadBackupsAsync(cancellationToken);
-            StatusMessage = result.RecoveryPoint is null
-                ? _text.Format("AppearanceRestoredFormat", slot)
-                : _text.Format("AppearanceRestoredWithRecoveryFormat", slot);
+            switch (kind)
+            {
+                case AppearanceOperationKind.Backup:
+                    await BackupAsync(GetSourceItem()!, cancellationToken);
+                    break;
+                case AppearanceOperationKind.Restore:
+                    await RestoreAsync(GetSourceItem()!, target!, cancellationToken);
+                    break;
+                case AppearanceOperationKind.Migrate:
+                    await MigrateAsync(GetSourceItem()!, target!, cancellationToken);
+                    break;
+                default:
+                    throw new InvalidOperationException(_text["AppearanceOperationUnavailable"]);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -211,30 +299,89 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
         }
         catch (Exception exception)
         {
-            StatusMessage = _text.Format("AppearanceRestoreFailedFormat", exception.Message);
+            StatusMessage = _text.Format("AppearanceOperationFailedFormat", exception.Message);
         }
         finally
         {
             IsBusy = false;
-            ResetRestoreConfirmation();
+            ResetConfirmations();
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanDelete))]
-    private async Task DeleteAsync(CancellationToken cancellationToken)
+    private async Task BackupAsync(
+        AppearanceListItemViewModel source,
+        CancellationToken cancellationToken)
     {
+        await _service.CreateBackupAsync(source.Slot!.FilePath, _libraryRoot, cancellationToken: cancellationToken);
+        Changed = true;
+        await ReloadRightAsync(cancellationToken);
+        StatusMessage = _text["AppearanceBackupCreated"];
+    }
+
+    private async Task RestoreAsync(
+        AppearanceListItemViewModel source,
+        AppearanceListItemViewModel target,
+        CancellationToken cancellationToken)
+    {
+        var targetProfile = SelectedLeftProfile!.Profile;
+        var result = await _service.RestoreAsync(
+            source.Backup!.Entry,
+            targetProfile.ConfigRoot,
+            target.SlotNumber,
+            _libraryRoot,
+            cancellationToken);
+        Changed = true;
+        _profileSlots.Remove(targetProfile.Id);
+        await ReloadLeftAsync(cancellationToken);
+        StatusMessage = result.RecoveryPoint is null
+            ? _text.Format("AppearanceRestoredFormat", target.SlotNumber)
+            : _text.Format("AppearanceRestoredWithRecoveryFormat", target.SlotNumber);
+    }
+
+    private async Task MigrateAsync(
+        AppearanceListItemViewModel source,
+        AppearanceListItemViewModel target,
+        CancellationToken cancellationToken)
+    {
+        var targetProfile = GetTargetProfile()!;
+        var sourceBackup = await _service.CreateBackupAsync(
+            source.Slot!.FilePath,
+            _libraryRoot,
+            cancellationToken: cancellationToken);
+        var result = await _service.RestoreAsync(
+            sourceBackup,
+            targetProfile.Profile.ConfigRoot,
+            target.SlotNumber,
+            _libraryRoot,
+            cancellationToken);
+        Changed = true;
+        _profileSlots.Remove(targetProfile.Profile.Id);
+        await ReloadTargetSideAsync(cancellationToken);
+        StatusMessage = result.RecoveryPoint is null
+            ? _text.Format("AppearanceMigratedFormat", target.SlotNumber)
+            : _text.Format("AppearanceMigratedWithRecoveryFormat", target.SlotNumber);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanDeleteBackup))]
+    private async Task DeleteBackupAsync(CancellationToken cancellationToken)
+    {
+        var selected = SelectedRightItem?.Backup
+            ?? throw new InvalidOperationException(_text["AppearanceBackupNotSelected"]);
         if (!IsDeleteArmed)
         {
             IsDeleteArmed = true;
+            StatusMessage = _text["DeleteAppearanceBackupWarning"];
             return;
         }
 
         IsBusy = true;
         try
         {
-            await _service.DeleteAsync(SelectedBackup!.Entry.ArchivePath, cancellationToken);
+            await _service.DeleteAsync(selected.Entry.ArchivePath, cancellationToken);
             Changed = true;
-            await ReloadBackupsAsync(cancellationToken);
+            IsDeleteArmed = false;
+            SelectedRightItem = null;
+            await ReloadRightAsync(cancellationToken);
             StatusMessage = _text["AppearanceBackupDeleted"];
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -248,166 +395,206 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
         }
     }
 
-    private async Task CreateBackupAsync(AppearanceSlot slot)
+    private bool CanDeleteBackup() =>
+        !IsBusy && IsRightBackupArea && SelectedRightItem?.Backup is not null;
+
+    private bool CanExecuteOperation()
     {
-        IsBusy = true;
-        try
+        if (IsBusy || SelectedLeftProfile is null || SelectedRightSource is null ||
+            GetOperationKind() == AppearanceOperationKind.None || GetSourceItem()?.CanBeSource != true)
         {
-            await _service.CreateBackupAsync(slot.FilePath, _libraryRoot);
-            Changed = true;
-            await ReloadBackupsAsync(CancellationToken.None);
-            StatusMessage = _text["AppearanceBackupCreated"];
+            return false;
         }
-        catch (Exception exception)
-        {
-            StatusMessage = _text.Format("AppearanceBackupCreateFailedFormat", exception.Message);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+
+        return GetOperationKind() == AppearanceOperationKind.Backup ||
+               GetTargetItem()?.CanBeTarget == true;
     }
 
-    private async Task LoadSourceSlotsAsync(CancellationToken cancellationToken)
+    private AppearanceOperationKind GetOperationKind()
     {
-        SourceSlots.Clear();
-        var selectedProfile = SelectedSourceProfile;
-        if (selectedProfile is null)
+        if (SelectedLeftProfile is null || SelectedRightSource is null)
+        {
+            return AppearanceOperationKind.None;
+        }
+
+        if (SelectedRightSource.IsBackupArea)
+        {
+            return IsDirectionReversed
+                ? AppearanceOperationKind.Restore
+                : AppearanceOperationKind.Backup;
+        }
+
+        if (SelectedRightSource.Profile?.Profile.Id == SelectedLeftProfile.Profile.Id)
+        {
+            return AppearanceOperationKind.None;
+        }
+
+        return AppearanceOperationKind.Migrate;
+    }
+
+    private AppearanceListItemViewModel? GetSourceItem() =>
+        IsDirectionReversed ? SelectedRightItem : SelectedLeftItem;
+
+    private AppearanceListItemViewModel? GetTargetItem() =>
+        IsDirectionReversed ? SelectedLeftItem : SelectedRightItem;
+
+    private AppearanceProfileOptionViewModel? GetTargetProfile() =>
+        IsDirectionReversed ? SelectedLeftProfile : SelectedRightSource?.Profile;
+
+    private Task ReloadTargetSideAsync(CancellationToken cancellationToken) =>
+        IsDirectionReversed
+            ? ReloadLeftAsync(cancellationToken)
+            : ReloadRightAsync(cancellationToken);
+
+    private async Task ReloadLeftAsync(CancellationToken cancellationToken = default)
+    {
+        var version = Interlocked.Increment(ref _leftLoadVersion);
+        var profile = SelectedLeftProfile;
+        var items = profile is null
+            ? []
+            : await LoadProfileItemsAsync(profile, cancellationToken);
+        if (version != _leftLoadVersion || profile != SelectedLeftProfile)
         {
             return;
         }
 
-        var slots = await GetProfileSlotsAsync(selectedProfile.Profile, cancellationToken);
-        if (SelectedSourceProfile != selectedProfile)
+        ReplaceItems(LeftItems, items);
+    }
+
+    private async Task ReloadRightAsync(CancellationToken cancellationToken = default)
+    {
+        var version = Interlocked.Increment(ref _rightLoadVersion);
+        var source = SelectedRightSource;
+        IReadOnlyList<AppearanceListItemViewModel> items;
+        if (source is null)
+        {
+            items = [];
+        }
+        else if (source.IsBackupArea)
+        {
+            var entries = await _service.ScanBackupsAsync(_libraryRoot, cancellationToken);
+            items = entries.Select(entry => AppearanceListItemViewModel.FromBackup(entry, _text)).ToArray();
+        }
+        else
+        {
+            items = await LoadProfileItemsAsync(source.Profile!, cancellationToken);
+        }
+
+        if (version != _rightLoadVersion || source != SelectedRightSource)
         {
             return;
         }
 
-        foreach (var slot in slots.Where(item => item.Appearance is not null))
-        {
-            SourceSlots.Add(new AppearanceSourceSlotViewModel(
-                slot,
-                AppearanceText.Summary(slot.Appearance!, _text),
-                _text.Format("AppearanceSlotFormat", slot.Slot),
-                () => CreateBackupAsync(slot)));
-        }
+        _allRightItems.Clear();
+        _allRightItems.AddRange(items);
+        ApplyRightFilters();
     }
 
-    private async Task ReloadBackupsAsync(CancellationToken cancellationToken)
-    {
-        var entries = await _service.ScanBackupsAsync(_libraryRoot, cancellationToken);
-        _allBackups.Clear();
-        _allBackups.AddRange(entries.Select(entry => AppearanceBackupItemViewModel.From(entry, _text)));
-        SelectedBackup = null;
-        ApplyFilters();
-    }
-
-    private void ApplyFilters()
-    {
-        var race = SelectedRaceFilter?.Race;
-        var gender = SelectedGenderFilter?.Gender;
-        var matches = _allBackups.Where(item =>
-                AppearanceBackupFilter.Matches(
-                    item.Entry.Manifest?.Appearance,
-                    race,
-                    gender,
-                    SearchText))
-            .ToArray();
-        if (SelectedBackup is not null && !matches.Contains(SelectedBackup))
-        {
-            SelectedBackup = null;
-        }
-
-        Backups.Clear();
-        foreach (var backup in matches)
-        {
-            Backups.Add(backup);
-        }
-    }
-
-    private async Task EnsureTargetSlotsAsync(CancellationToken cancellationToken)
-    {
-        if (SelectedTargetProfile is not null)
-        {
-            await GetProfileSlotsAsync(SelectedTargetProfile.Profile, cancellationToken);
-        }
-
-        UpdateTargetPreview();
-    }
-
-    private async Task<AppearanceSlot?> GetTargetSlotAsync(
-        GameProfile profile,
-        int slot,
-        CancellationToken cancellationToken) =>
-        (await GetProfileSlotsAsync(profile, cancellationToken))
-        .FirstOrDefault(item => item.Slot == slot);
-
-    private async Task<IReadOnlyList<AppearanceSlot>> GetProfileSlotsAsync(
-        GameProfile profile,
+    private async Task<IReadOnlyList<AppearanceListItemViewModel>> LoadProfileItemsAsync(
+        AppearanceProfileOptionViewModel profile,
         CancellationToken cancellationToken)
     {
-        if (_profileSlots.TryGetValue(profile.Id, out var cached))
+        if (!_profileSlots.TryGetValue(profile.Profile.Id, out var existingSlots))
         {
-            return cached;
+            existingSlots = await _service.ScanSlotsAsync(profile.Profile.ConfigRoot, cancellationToken);
+            _profileSlots[profile.Profile.Id] = existingSlots;
         }
 
-        var slots = await _service.ScanSlotsAsync(profile.ConfigRoot, cancellationToken);
-        _profileSlots[profile.Id] = slots;
-        return slots;
+        var bySlot = existingSlots.ToDictionary(slot => slot.Slot);
+        return Enumerable.Range(1, AppearanceData.MaximumSlot)
+            .Select(slot => bySlot.TryGetValue(slot, out var existing)
+                ? AppearanceListItemViewModel.FromSlot(existing, isOccupied: true, _text)
+                : AppearanceListItemViewModel.FromSlot(
+                    new AppearanceSlot(
+                        slot,
+                        Path.Combine(profile.Profile.ConfigRoot, AppearanceData.GetSlotFileName(slot)),
+                        null,
+                        null),
+                    isOccupied: false,
+                    _text))
+            .ToArray();
     }
 
-    private void UpdateTargetPreview()
+    private void ApplyRightFilters()
     {
-        if (SelectedTargetProfile is null || SelectedTargetSlot is null)
+        IReadOnlyList<AppearanceListItemViewModel> matches = _allRightItems;
+        if (IsRightBackupArea)
         {
-            TargetPreview = _text["SelectAppearanceTarget"];
+            var race = SelectedRaceFilter?.Race;
+            var gender = SelectedGenderFilter?.Gender;
+            matches = _allRightItems.Where(item =>
+                    AppearanceBackupFilter.Matches(
+                        item.Backup?.Entry.Manifest?.Appearance,
+                        race,
+                        gender,
+                        SearchText))
+                .ToArray();
+        }
+
+        if (SelectedRightItem is not null && !matches.Contains(SelectedRightItem))
+        {
+            SelectedRightItem = null;
+        }
+
+        ReplaceItems(RightItems, matches);
+    }
+
+    private static void ReplaceItems(
+        ObservableCollection<AppearanceListItemViewModel> target,
+        IReadOnlyList<AppearanceListItemViewModel> source)
+    {
+        target.Clear();
+        foreach (var item in source)
+        {
+            target.Add(item);
+        }
+    }
+
+    private void CancelOverwriteConfirmation()
+    {
+        if (!IsOverwriteArmed)
+        {
             return;
         }
 
-        _profileSlots.TryGetValue(SelectedTargetProfile.Profile.Id, out var slots);
-        var occupied = slots?.FirstOrDefault(item => item.Slot == SelectedTargetSlot.Slot);
-        TargetPreview = occupied is null
-            ? _text["AppearanceTargetEmpty"]
-            : occupied.Appearance is null
-                ? _text.Format("AppearanceTargetUnreadableFormat", occupied.Error ?? _text["UnknownAppearance"])
-                : _text.Format(
-                    "AppearanceTargetOccupiedFormat",
-                    AppearanceText.Summary(occupied.Appearance, _text));
+        IsOverwriteArmed = false;
+        StatusMessage = _text["AppearanceDualListHint"];
     }
 
-    private async Task LoadSourceSlotsSafelyAsync()
+    private void CancelDeleteConfirmation()
     {
-        try
+        if (!IsDeleteArmed)
         {
-            await LoadSourceSlotsAsync(CancellationToken.None);
+            return;
         }
-        catch (Exception exception)
-        {
-            StatusMessage = _text.Format("LoadAppearanceDataFailedFormat", exception.Message);
-        }
+
+        IsDeleteArmed = false;
+        StatusMessage = _text["AppearanceDualListHint"];
     }
 
-    private async Task UpdateTargetPreviewSafelyAsync()
+    private void CancelConfirmations()
     {
-        try
+        var hadConfirmation = IsOverwriteArmed || IsDeleteArmed;
+        ResetConfirmations();
+        if (hadConfirmation)
         {
-            await EnsureTargetSlotsAsync(CancellationToken.None);
-        }
-        catch (Exception exception)
-        {
-            TargetPreview = _text.Format("LoadAppearanceDataFailedFormat", exception.Message);
+            StatusMessage = _text["AppearanceDualListHint"];
         }
     }
 
-    private void ResetRestoreConfirmation() => IsOverwriteArmed = false;
+    private void ResetConfirmations()
+    {
+        IsOverwriteArmed = false;
+        IsDeleteArmed = false;
+    }
 
-    private bool CanRestore() =>
-        !IsBusy &&
-        SelectedBackup?.IsValid == true &&
-        SelectedTargetProfile is not null &&
-        SelectedTargetSlot is not null;
-
-    private bool CanDelete() => !IsBusy && SelectedBackup is not null;
+    private enum AppearanceOperationKind
+    {
+        None,
+        Backup,
+        Restore,
+        Migrate,
+    }
 }
 
 public sealed record AppearanceProfileOptionViewModel(GameProfile Profile, string DisplayName)
@@ -416,26 +603,71 @@ public sealed record AppearanceProfileOptionViewModel(GameProfile Profile, strin
         new(profile, $"{profile.Name} · {profile.ConfigRoot}");
 }
 
+public sealed record AppearanceRightSourceOptionViewModel(
+    AppearanceProfileOptionViewModel? Profile,
+    string DisplayName)
+{
+    public bool IsBackupArea => Profile is null;
+}
+
 public sealed record AppearanceRaceFilterViewModel(AppearanceRace? Race, string DisplayName);
 
 public sealed record AppearanceGenderFilterViewModel(AppearanceGender? Gender, string DisplayName);
 
-public sealed record AppearanceTargetSlotViewModel(int Slot, string DisplayName);
-
-public sealed partial class AppearanceSourceSlotViewModel(
-    AppearanceSlot slot,
-    string summary,
-    string slotText,
-    Func<Task> createBackup) : ObservableObject
+public sealed record AppearanceListItemViewModel(
+    AppearanceSlot? Slot,
+    AppearanceBackupItemViewModel? Backup,
+    int SlotNumber,
+    string Title,
+    string Summary,
+    string SecondaryText,
+    bool IsOccupied,
+    bool CanBeSource,
+    bool CanBeTarget)
 {
-    public AppearanceSlot Slot { get; } = slot;
+    public bool IsSlot => Slot is not null;
 
-    public string Summary { get; } = summary;
+    public bool IsBackup => Backup is not null;
 
-    public string SlotText { get; } = slotText;
+    public static AppearanceListItemViewModel FromSlot(
+        AppearanceSlot slot,
+        bool isOccupied,
+        ITextLocalizer text)
+    {
+        var isValid = slot.Appearance is not null;
+        var summary = !isOccupied
+            ? text["AppearanceEmptySlot"]
+            : isValid
+                ? AppearanceText.Summary(slot.Appearance!, text)
+                : text.Format("AppearanceTargetUnreadableFormat", slot.Error ?? text["UnknownAppearance"]);
+        return new AppearanceListItemViewModel(
+            slot,
+            null,
+            slot.Slot,
+            text.Format("AppearanceSlotFormat", slot.Slot),
+            summary,
+            isOccupied ? text["AppearanceSlotOccupied"] : text["AppearanceSlotEmpty"],
+            isOccupied,
+            isValid,
+            !isOccupied || isValid);
+    }
 
-    [RelayCommand]
-    private Task CreateBackupAsync() => createBackup();
+    public static AppearanceListItemViewModel FromBackup(
+        AppearanceBackupEntry entry,
+        ITextLocalizer text)
+    {
+        var backup = AppearanceBackupItemViewModel.From(entry, text);
+        return new AppearanceListItemViewModel(
+            null,
+            backup,
+            0,
+            $"{backup.RaceText} · {backup.GenderText}",
+            backup.Comment,
+            $"{backup.CreatedAt} · {backup.Reason}",
+            true,
+            backup.IsValid,
+            false);
+    }
 }
 
 public sealed record AppearanceBackupItemViewModel(

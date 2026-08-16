@@ -222,15 +222,28 @@ public sealed class GitHubApplicationUpdateService : IApplicationUpdateService
     {
         using var archive = ZipFile.OpenRead(archivePath);
         var files = archive.Entries.Where(entry => !string.IsNullOrEmpty(entry.Name)).ToArray();
-        if (files.Length != 1 ||
-            !string.Equals(files[0].FullName, ExecutableName, StringComparison.Ordinal) ||
-            files[0].Length is <= 0 or > MaximumExecutableSize)
+        var allowedFiles = new Dictionary<string, long>(StringComparer.Ordinal)
+        {
+            [ExecutableName] = MaximumExecutableSize,
+            ["LICENSE"] = 128 * 1024,
+            ["README.md"] = 1024 * 1024,
+            ["LEGAL.md"] = 1024 * 1024,
+        };
+        var executableEntry = files.FirstOrDefault(entry =>
+            string.Equals(entry.FullName, ExecutableName, StringComparison.Ordinal));
+        if (executableEntry is null ||
+            files.Length > allowedFiles.Count ||
+            files.Select(entry => entry.FullName).Distinct(StringComparer.Ordinal).Count() != files.Length ||
+            files.Any(entry =>
+                !allowedFiles.TryGetValue(entry.FullName, out var maximumSize) ||
+                entry.Length is <= 0 ||
+                entry.Length > maximumSize))
         {
             throw new InvalidDataException("更新包结构无效。");
         }
 
         var executablePath = Path.Combine(destinationDirectory, ExecutableName);
-        await using var source = files[0].Open();
+        await using var source = executableEntry.Open();
         await using var destination = new FileStream(
             executablePath,
             FileMode.CreateNew,
@@ -240,7 +253,7 @@ public sealed class GitHubApplicationUpdateService : IApplicationUpdateService
             FileOptions.Asynchronous | FileOptions.WriteThrough);
         await source.CopyToAsync(destination, cancellationToken);
         await destination.FlushAsync(cancellationToken);
-        if (destination.Length != files[0].Length)
+        if (destination.Length != executableEntry.Length)
         {
             throw new InvalidDataException("更新包解压后的文件大小不一致。");
         }

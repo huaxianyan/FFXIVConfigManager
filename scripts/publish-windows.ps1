@@ -43,6 +43,10 @@ if ($LASTEXITCODE -ne 0) {
 
 Get-ChildItem $publishDirectory -Filter "*.pdb" -Recurse | Remove-Item -Force
 
+Copy-Item (Join-Path $repositoryRoot "LICENSE") (Join-Path $publishDirectory "LICENSE")
+Copy-Item (Join-Path $repositoryRoot "README.md") (Join-Path $publishDirectory "README.md")
+Copy-Item (Join-Path $repositoryRoot "docs/legal.md") (Join-Path $publishDirectory "LEGAL.md")
+
 if (Test-Path $archivePath) {
     Remove-Item $archivePath -Force
 }

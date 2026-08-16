@@ -36,7 +36,7 @@ public sealed class GitHubApplicationUpdateServiceTests : IDisposable
     [Fact]
     public async Task PrepareAsync_ValidPackageCreatesVerifiedExecutableAndUpdaterCopy()
     {
-        var package = CreatePackage();
+        var package = CreatePackage(includeDocumentation: true);
         using var client = CreateClient(package, checksumOverride: null);
         var service = new GitHubApplicationUpdateService(
             client,
@@ -151,17 +151,29 @@ public sealed class GitHubApplicationUpdateServiceTests : IDisposable
     }
 
     private static byte[] CreatePackage(
-        string entryName = GitHubApplicationUpdateService.ExecutableName)
+        string entryName = GitHubApplicationUpdateService.ExecutableName,
+        bool includeDocumentation = false)
     {
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
         {
-            var entry = archive.CreateEntry(entryName);
-            using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
-            writer.Write("new executable");
+            WriteEntry(archive, entryName, "new executable");
+            if (includeDocumentation)
+            {
+                WriteEntry(archive, "LICENSE", "license");
+                WriteEntry(archive, "README.md", "readme");
+                WriteEntry(archive, "LEGAL.md", "legal");
+            }
         }
 
         return output.ToArray();
+    }
+
+    private static void WriteEntry(ZipArchive archive, string name, string content)
+    {
+        var entry = archive.CreateEntry(name);
+        using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
+        writer.Write(content);
     }
 
     private sealed class StubHttpMessageHandler(

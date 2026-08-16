@@ -5,6 +5,7 @@ using FFXIVConfigManager.Application.Appearances;
 using FFXIVConfigManager.Application.Discovery;
 using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
+using FFXIVConfigManager.Application.Portraits;
 using FFXIVConfigManager.Application.Updates;
 using FFXIVConfigManager.Desktop.Localization;
 using FFXIVConfigManager.Desktop.Services;
@@ -26,6 +27,7 @@ public partial class MainViewModel(
     ISettingsBackupService settingsBackupService,
     ICharacterBackupDialogService characterBackupDialog,
     IAppearanceBackupService appearanceBackupService,
+    IPortraitManagementService portraitManagementService,
     ISettingsBackupDialogService settingsBackupDialog,
     IApplicationUpdateService applicationUpdateService,
     IApplicationUpdateInstaller applicationUpdateInstaller,
@@ -41,6 +43,7 @@ public partial class MainViewModel(
     private CharacterRowViewModel? _previewedMigrationTarget;
     private ConfigScope _previewedMigrationScopes;
     private bool _isApplyingSettings;
+    private bool _migrationScopeHandlersRegistered;
 
     public ObservableCollection<CharacterRowViewModel> Characters { get; } = [];
 
@@ -75,6 +78,7 @@ public partial class MainViewModel(
     [NotifyPropertyChangedFor(nameof(IsDashboardPage))]
     [NotifyPropertyChangedFor(nameof(IsCharactersPage))]
     [NotifyPropertyChangedFor(nameof(IsAppearancesPage))]
+    [NotifyPropertyChangedFor(nameof(IsPortraitsPage))]
     [NotifyPropertyChangedFor(nameof(IsBackupsPage))]
     [NotifyPropertyChangedFor(nameof(IsMigrationPage))]
     [NotifyPropertyChangedFor(nameof(IsSettingsPage))]
@@ -88,6 +92,8 @@ public partial class MainViewModel(
 
     public bool IsAppearancesPage => CurrentPage == NavigationPage.Appearances;
 
+    public bool IsPortraitsPage => CurrentPage == NavigationPage.Portraits;
+
     public bool IsBackupsPage => CurrentPage == NavigationPage.Backups;
 
     public bool IsMigrationPage => CurrentPage == NavigationPage.Migration;
@@ -99,6 +105,7 @@ public partial class MainViewModel(
         NavigationPage.Dashboard => text["Dashboard"],
         NavigationPage.Characters => text["Characters"],
         NavigationPage.Appearances => text["CharacterAppearances"],
+        NavigationPage.Portraits => text["PortraitManagement"],
         NavigationPage.Backups => text["Backups"],
         NavigationPage.Migration => text["Migration"],
         NavigationPage.Settings => text["Settings"],
@@ -110,6 +117,7 @@ public partial class MainViewModel(
         NavigationPage.Dashboard => text["DashboardSubtitle"],
         NavigationPage.Characters => text["CharactersSubtitle"],
         NavigationPage.Appearances => text["AppearancesSubtitle"],
+        NavigationPage.Portraits => text["PortraitManagementSubtitle"],
         NavigationPage.Backups => text["BackupsSubtitle"],
         NavigationPage.Migration => text["MigrationSubtitle"],
         NavigationPage.Settings => text["SettingsSubtitle"],
@@ -134,6 +142,7 @@ public partial class MainViewModel(
     [NotifyCanExecuteChangedFor(nameof(BackupSettingsCommand))]
     [NotifyCanExecuteChangedFor(nameof(RestoreSettingsCommand))]
     [NotifyCanExecuteChangedFor(nameof(ManageAppearancesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ManagePortraitsCommand))]
     [NotifyCanExecuteChangedFor(nameof(SelectSnapshotLibraryCommand))]
     [NotifyCanExecuteChangedFor(nameof(PreviewMigrationCommand))]
     [NotifyCanExecuteChangedFor(nameof(ConfirmMigrationCommand))]
@@ -166,7 +175,7 @@ public partial class MainViewModel(
 
     public string CurrentVersionText { get; } = text.Format(
         "CurrentVersionFormat",
-        typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "未知");
+        typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? text["UnknownValue"]);
 
     [ObservableProperty]
     public partial string UpdateStatusText { get; private set; } = text["UpdateNotChecked"];
@@ -190,6 +199,9 @@ public partial class MainViewModel(
 
     [ObservableProperty]
     public partial AppearanceBackupsViewModel? AppearanceManager { get; private set; }
+
+    [ObservableProperty]
+    public partial PortraitManagementViewModel? PortraitManager { get; private set; }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(PreviewMigrationCommand))]
@@ -334,6 +346,10 @@ public partial class MainViewModel(
             if (CurrentPage == NavigationPage.Appearances)
             {
                 await LoadAppearanceManagerAsync(cancellationToken);
+            }
+            else if (CurrentPage == NavigationPage.Portraits)
+            {
+                await LoadPortraitManagerAsync(cancellationToken);
             }
         }
     }
@@ -784,6 +800,49 @@ public partial class MainViewModel(
 
     private bool CanManageAppearances() => !IsBusy;
 
+    [RelayCommand(CanExecute = nameof(CanManagePortraits))]
+    private async Task ManagePortraitsAsync(CancellationToken cancellationToken)
+    {
+        CurrentPage = NavigationPage.Portraits;
+        await LoadPortraitManagerAsync(cancellationToken);
+    }
+
+    private async Task LoadPortraitManagerAsync(CancellationToken cancellationToken)
+    {
+        if (Characters.Count == 0)
+        {
+            PortraitManager = null;
+            StatusMessage = text["NoPortraitCharacter"];
+            return;
+        }
+
+        var libraryRoot = await EnsureBackupLibraryAsync(cancellationToken);
+        if (libraryRoot is null)
+        {
+            PortraitManager = null;
+            StatusMessage = text["PortraitRequiresLibrary"];
+            return;
+        }
+
+        var characters = Characters
+            .OrderBy(character => character.DisplayName)
+            .ThenBy(character => character.ProfileName)
+            .Select(character => new PortraitSourceOptionViewModel(
+                PortraitSourceKind.Character,
+                $"{character.DisplayName} · {character.ProfileName}",
+                character.Character.FullPath))
+            .ToArray();
+        var viewModel = new PortraitManagementViewModel(
+            portraitManagementService,
+            libraryRoot,
+            characters,
+            text);
+        PortraitManager = viewModel;
+        await viewModel.InitializeAsync(cancellationToken);
+    }
+
+    private bool CanManagePortraits() => !IsBusy;
+
     [RelayCommand(CanExecute = nameof(CanCheckForUpdates))]
     public async Task CheckForUpdatesAsync(CancellationToken cancellationToken = default)
     {
@@ -879,6 +938,7 @@ public partial class MainViewModel(
     [RelayCommand(CanExecute = nameof(CanPreviewMigration))]
     private async Task PreviewMigrationAsync(CancellationToken cancellationToken)
     {
+        EnsureMigrationScopeHandlers();
         if (SelectedMigrationSource is null || SelectedMigrationTarget is null)
         {
             return;
@@ -1007,10 +1067,41 @@ public partial class MainViewModel(
             .Aggregate(ConfigScope.None, (current, scope) => current | scope.Scope);
 
     partial void OnSelectedMigrationSourceChanged(CharacterRowViewModel? value) =>
-        ClearMigrationPreview();
+        InvalidateMigrationPreview();
 
     partial void OnSelectedMigrationTargetChanged(CharacterRowViewModel? value) =>
+        InvalidateMigrationPreview();
+
+    private void EnsureMigrationScopeHandlers()
+    {
+        if (_migrationScopeHandlersRegistered)
+        {
+            return;
+        }
+
+        foreach (var scope in MigrationScopes)
+        {
+            scope.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(MigrationScopeOptionViewModel.IsSelected))
+                {
+                    InvalidateMigrationPreview();
+                }
+            };
+        }
+
+        _migrationScopeHandlersRegistered = true;
+    }
+
+    private void InvalidateMigrationPreview()
+    {
+        var hadPreview = CanConfirmMigration || MigrationPreviewFiles.Count > 0;
         ClearMigrationPreview();
+        if (hadPreview)
+        {
+            StatusMessage = text["MigrationSelectionChanged"];
+        }
+    }
 
     private void ClearMigrationPreview()
     {
@@ -1122,6 +1213,7 @@ public enum NavigationPage
     Dashboard,
     Characters,
     Appearances,
+    Portraits,
     Backups,
     Migration,
     Settings,

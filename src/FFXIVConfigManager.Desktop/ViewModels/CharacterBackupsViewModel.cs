@@ -180,6 +180,7 @@ public sealed partial class CharacterBackupsViewModel : ViewModelBase
         if (!IsDeleteArmed)
         {
             IsDeleteArmed = true;
+            StatusMessage = _text["DeleteCharacterBackupWarning"];
             return;
         }
 

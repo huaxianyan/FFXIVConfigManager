@@ -5,6 +5,7 @@ using FFXIVConfigManager.Application.Appearances;
 using FFXIVConfigManager.Application.Discovery;
 using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
+using FFXIVConfigManager.Application.Portraits;
 using FFXIVConfigManager.Desktop.Localization;
 using FFXIVConfigManager.Desktop.Services;
 using FFXIVConfigManager.Desktop.ViewModels;
@@ -13,6 +14,7 @@ using FFXIVConfigManager.Infrastructure.Appearances;
 using FFXIVConfigManager.Infrastructure.Discovery;
 using FFXIVConfigManager.Infrastructure.Settings;
 using FFXIVConfigManager.Infrastructure.Snapshots;
+using FFXIVConfigManager.Infrastructure.Portraits;
 using FFXIVConfigManager.Infrastructure.Updates;
 using FFXIVConfigManager.Platform.Windows.Discovery;
 
@@ -63,6 +65,8 @@ public partial class App : Avalonia.Application
                 transactionalRestorer);
             IAppearanceBackupService appearanceBackupService =
                 new ZipAppearanceBackupService();
+            IPortraitManagementService portraitManagementService =
+                new ZipPortraitManagementService();
 
             MainWindow? window = null;
             var text = ResourceTextLocalizer.Instance;
@@ -99,6 +103,7 @@ public partial class App : Avalonia.Application
                 settingsBackupService,
                 characterBackupDialog,
                 appearanceBackupService,
+                portraitManagementService,
                 settingsBackupDialog,
                 updateService,
                 updateInstaller,

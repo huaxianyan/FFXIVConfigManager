@@ -68,6 +68,9 @@
                     <Button Classes.nav="True" Classes.active="{Binding IsAppearancesPage}"
                             Command="{Binding ManageAppearancesCommand}"
                             Content="{l10n:Tr CharacterAppearances}" />
+                    <Button Classes.nav="True" Classes.active="{Binding IsPortraitsPage}"
+                            Command="{Binding ManagePortraitsCommand}"
+                            Content="{l10n:Tr PortraitManagement}" />
                     <Button Classes.nav="True" Classes.active="{Binding IsBackupsPage}"
                             Command="{Binding ShowBackupsCommand}" Content="{l10n:Tr Backups}" />
                     <Button Classes.nav="True" Classes.active="{Binding IsMigrationPage}"
@@ -247,6 +250,11 @@
             <!-- 角色形象 -->
             <Panel Grid.Row="1" IsVisible="{Binding IsAppearancesPage}">
                 <views:AppearanceBackupsView DataContext="{Binding AppearanceManager}" />
+            </Panel>
+
+            <!-- 肖像管理 -->
+            <Panel Grid.Row="1" IsVisible="{Binding IsPortraitsPage}">
+                <views:PortraitManagementView DataContext="{Binding PortraitManager}" />
             </Panel>
 
             <!-- 备份与恢复 -->

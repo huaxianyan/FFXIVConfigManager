@@ -73,14 +73,22 @@ jobs:
           $tag = '${{ github.ref_name }}'
           $archive = 'artifacts/FFXIVConfigManager-win-x64.zip'
           $checksum = 'artifacts/FFXIVConfigManager-win-x64.zip.sha256'
+          $notes = "docs/release-notes/$tag.md"
+
+          if (-not (Test-Path $notes)) {
+              throw "缺少发布说明：$notes。发布说明必须经过中文排版审阅。"
+          }
 
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
+              gh release edit $tag `
+                  --title "FFXIVConfigManager $tag" `
+                  --notes-file $notes
               gh release upload $tag $archive $checksum --clobber
           }
           else {
               gh release create $tag $archive $checksum `
                   --verify-tag `
                   --title "FFXIVConfigManager $tag" `
-                  --generate-notes
+                  --notes-file $notes
           }

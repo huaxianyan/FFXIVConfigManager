@@ -1,0 +1,164 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FFXIVConfigManager.Desktop.ViewModels"
+             xmlns:l10n="using:FFXIVConfigManager.Desktop.Localization"
+             x:Class="FFXIVConfigManager.Desktop.Views.PortraitManagementView"
+             x:DataType="vm:PortraitManagementViewModel">
+    <Grid Margin="28" RowDefinitions="Auto,*,Auto" RowSpacing="14">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+            <TextBlock VerticalAlignment="Center" Opacity="0.72" TextWrapping="Wrap"
+                       Text="{Binding StatusMessage}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                <ProgressBar Width="90" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+                <Button Command="{Binding RefreshCommand}" Content="{l10n:Tr RefreshPortraits}" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,210,*" ColumnSpacing="14">
+            <Border Padding="14" CornerRadius="10" BorderThickness="1"
+                    BorderBrush="#40808080" Background="#0A808080">
+                <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+                    <TextBlock FontSize="17" FontWeight="SemiBold" Text="{Binding LeftPanelTitle}" />
+                    <ComboBox Grid.Row="1" ItemsSource="{Binding Sources}"
+                              SelectedItem="{Binding SelectedLeftSource}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PortraitSourceOptionViewModel">
+                                <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8"
+                          IsVisible="{Binding IsLeftBackupArea}">
+                        <TextBox Text="{Binding LeftSearchText}"
+                                 PlaceholderText="{l10n:Tr SearchPortraitSchemes}" />
+                        <Button Grid.Column="1" Command="{Binding DeleteLeftBackupCommand}"
+                                Content="{Binding LeftDeleteButtonText}" />
+                    </Grid>
+                    <ListBox Grid.Row="3" ItemsSource="{Binding LeftItems}"
+                             SelectedItem="{Binding SelectedLeftItem}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PortraitListItemViewModel">
+                                <Panel Margin="4,7">
+                                    <Grid ColumnDefinitions="44,44,*" RowDefinitions="Auto,Auto"
+                                          ColumnSpacing="8" RowSpacing="3" IsVisible="{Binding IsCharacter}">
+                                        <TextBlock Grid.RowSpan="2" VerticalAlignment="Center" FontSize="18"
+                                                   FontWeight="SemiBold" Text="{Binding GearsetNumberText}" />
+                                        <Image Grid.Column="1" Grid.RowSpan="2" Width="36" Height="36"
+                                               VerticalAlignment="Center" Source="{Binding JobIcon}" />
+                                        <TextBlock Grid.Column="2" FontWeight="SemiBold" Text="{Binding GearsetName}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="2" Grid.Row="1" FontSize="11" Opacity="0.62"
+                                                   Text="{Binding UpdatedAtText}" />
+                                    </Grid>
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4"
+                                          IsVisible="{Binding IsBackup}">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBlock FontWeight="SemiBold" Text="{Binding SchemeName}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" FontSize="11" Opacity="0.7"
+                                                       Text="{Binding IntegrityText}" />
+                                        </Grid>
+                                        <TextBlock Grid.Row="1" Opacity="0.72" Text="{Binding Note}"
+                                                   TextWrapping="Wrap" MaxLines="2" />
+                                        <TextBlock Grid.Row="2" FontSize="11" Opacity="0.62"
+                                                   Text="{Binding BackupCreatedAtText}" />
+                                    </Grid>
+                                </Panel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Padding="14" CornerRadius="10" BorderThickness="1"
+                    BorderBrush="#40808080" Background="#07808080">
+                <StackPanel VerticalAlignment="Center" Spacing="12">
+                    <Button Width="58" Height="42" HorizontalAlignment="Center"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                            FontSize="24" Command="{Binding SwapDirectionCommand}"
+                            Content="{Binding DirectionSymbol}"
+                            ToolTip.Tip="{l10n:Tr SwapPortraitDirection}" />
+                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Command="{Binding ExecuteOperationCommand}"
+                            Content="{Binding OperationName}" />
+                    <Border Padding="10" CornerRadius="7" Background="#12808080"
+                            IsVisible="{Binding IsBackupOperation}">
+                        <StackPanel Spacing="8">
+                            <TextBlock FontWeight="SemiBold" Text="{l10n:Tr NewPortraitBackupScheme}" />
+                            <TextBox Text="{Binding SchemeName}" MaxLength="100"
+                                     PlaceholderText="{l10n:Tr PortraitSchemeNameRequired}" />
+                            <TextBox Text="{Binding Note}" MaxLength="500" MinHeight="70"
+                                     AcceptsReturn="True" TextWrapping="Wrap"
+                                     PlaceholderText="{l10n:Tr PortraitNoteRequired}" />
+                            <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap"
+                                       Text="{l10n:Tr OnePortraitPerSchemeHint}" />
+                        </StackPanel>
+                    </Border>
+                    <TextBlock FontSize="11" Opacity="0.6" TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Text="{l10n:Tr PortraitOverwriteHint}" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Padding="14" CornerRadius="10" BorderThickness="1"
+                    BorderBrush="#40808080" Background="#0A808080">
+                <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+                    <TextBlock FontSize="17" FontWeight="SemiBold" Text="{Binding RightPanelTitle}" />
+                    <ComboBox Grid.Row="1" ItemsSource="{Binding Sources}"
+                              SelectedItem="{Binding SelectedRightSource}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PortraitSourceOptionViewModel">
+                                <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8"
+                          IsVisible="{Binding IsRightBackupArea}">
+                        <TextBox Text="{Binding RightSearchText}"
+                                 PlaceholderText="{l10n:Tr SearchPortraitSchemes}" />
+                        <Button Grid.Column="1" Command="{Binding DeleteRightBackupCommand}"
+                                Content="{Binding RightDeleteButtonText}" />
+                    </Grid>
+                    <ListBox Grid.Row="3" ItemsSource="{Binding RightItems}"
+                             SelectedItem="{Binding SelectedRightItem}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PortraitListItemViewModel">
+                                <Panel Margin="4,7">
+                                    <Grid ColumnDefinitions="44,44,*" RowDefinitions="Auto,Auto"
+                                          ColumnSpacing="8" RowSpacing="3" IsVisible="{Binding IsCharacter}">
+                                        <TextBlock Grid.RowSpan="2" VerticalAlignment="Center" FontSize="18"
+                                                   FontWeight="SemiBold" Text="{Binding GearsetNumberText}" />
+                                        <Image Grid.Column="1" Grid.RowSpan="2" Width="36" Height="36"
+                                               VerticalAlignment="Center" Source="{Binding JobIcon}" />
+                                        <TextBlock Grid.Column="2" FontWeight="SemiBold" Text="{Binding GearsetName}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="2" Grid.Row="1" FontSize="11" Opacity="0.62"
+                                                   Text="{Binding UpdatedAtText}" />
+                                    </Grid>
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4"
+                                          IsVisible="{Binding IsBackup}">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBlock FontWeight="SemiBold" Text="{Binding SchemeName}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" FontSize="11" Opacity="0.7"
+                                                       Text="{Binding IntegrityText}" />
+                                        </Grid>
+                                        <TextBlock Grid.Row="1" Opacity="0.72" Text="{Binding Note}"
+                                                   TextWrapping="Wrap" MaxLines="2" />
+                                        <TextBlock Grid.Row="2" FontSize="11" Opacity="0.62"
+                                                   Text="{Binding BackupCreatedAtText}" />
+                                    </Grid>
+                                </Panel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Padding="11" CornerRadius="8" Background="#105B8DEF">
+            <TextBlock FontSize="12" TextWrapping="Wrap"
+                       Text="{l10n:Tr PortraitOperationRules}" />
+        </Border>
+    </Grid>
+</UserControl>

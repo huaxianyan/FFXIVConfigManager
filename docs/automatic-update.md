@@ -11,7 +11,9 @@ FFXIVConfigManager-win-x64.zip
 FFXIVConfigManager-win-x64.zip.sha256
 ```
 
-程序下载 SHA-256 校验文件和 ZIP，流式计算 ZIP 的实际 SHA-256，并在一致后解压。ZIP 必须只包含根目录下的 `FFXIVConfigManager.exe`，否则拒绝更新。下载包、解压后程序和写入安装目录后的临时程序都会重新校验。
+程序下载 SHA-256 校验文件和 ZIP，流式计算 ZIP 的实际 SHA-256，并在一致后解压。ZIP 只允许包含根目录下的 `FFXIVConfigManager.exe`、`LICENSE`、`README.md` 和 `LEGAL.md`，其中应用程序必须存在，其他 3 个文档可以省略。出现目录、重复条目、未知文件、空文件或超出大小限制的文件时会拒绝更新。下载包、解压后程序和写入安装目录后的临时程序都会重新校验。
+
+自动更新只从归档中提取经过验证的应用程序文件，用于自替换。许可证和说明文档随完整便携包分发，更新现有目录时不会覆盖用户自行保留的文档。
 
 ## 任意安装位置
 

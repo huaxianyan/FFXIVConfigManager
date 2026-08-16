@@ -42,7 +42,7 @@ public static class ConfigFileCatalog
             ["COMMON.DAT"] = new("COMMON.DAT", "角色通用设置", ConfigScope.Character, true, true),
             ["CONTROL0.DAT"] = new("CONTROL0.DAT", "键鼠模式设置", ConfigScope.Controls, true, true),
             ["CONTROL1.DAT"] = new("CONTROL1.DAT", "手柄模式设置", ConfigScope.Controls, true, true),
-            ["GEARSET.DAT"] = new("GEARSET.DAT", "套装列表", ConfigScope.Gearsets, true, true),
+            ["GEARSET.DAT"] = new("GEARSET.DAT", "套装列表与即时肖像关联", ConfigScope.Gearsets, true, true),
             ["GS.DAT"] = new("GS.DAT", "九宫幻卡等数据", ConfigScope.Miscellaneous, false, true),
             ["HOTBAR.DAT"] = new("HOTBAR.DAT", "热键栏", ConfigScope.Hotbars, true, true),
             ["ITEMFDR.DAT"] = new("ITEMFDR.DAT", "物品搜索索引", ConfigScope.Miscellaneous, false, false, FileSensitivity.Cache),
@@ -50,7 +50,7 @@ public static class ConfigFileCatalog
             ["KEYBIND.DAT"] = new("KEYBIND.DAT", "键位设置", ConfigScope.Controls, true, true),
             ["LOGFLTR.DAT"] = new("LOGFLTR.DAT", "消息窗口过滤器", ConfigScope.Character, true, true),
             ["MACRO.DAT"] = new("MACRO.DAT", "角色专用宏", ConfigScope.Macros, true, true),
-            ["UISAVE.DAT"] = new("UISAVE.DAT", "界面状态与场地标点", ConfigScope.UiState, true, true),
+            ["UISAVE.DAT"] = new("UISAVE.DAT", "界面状态、场地标点与肖像数据", ConfigScope.UiState, true, true),
         };
 
     public static IReadOnlyList<ConfigFileDefinition> All { get; } =
