@@ -37,7 +37,7 @@
     <value>角色迁移</value>
   </data>
   <data name="Settings" xml:space="preserve">
-    <value>配置与存储</value>
+    <value>配置</value>
   </data>
   <data name="Refresh" xml:space="preserve">
     <value>重新扫描</value>
@@ -58,7 +58,7 @@
     <value>在两个角色之间安全迁移配置</value>
   </data>
   <data name="SettingsSubtitle" xml:space="preserve">
-    <value>管理配置源和备份存储位置</value>
+    <value>管理软件更新、软件设置、配置源和备份存储</value>
   </data>
   <data name="ProfileSource" xml:space="preserve">
     <value>配置源</value>
@@ -256,7 +256,7 @@
     <value>没有可用的配置源</value>
   </data>
   <data name="AddCustomProfileHint" xml:space="preserve">
-    <value>可在配置与存储页面添加自定义配置目录。</value>
+    <value>可在配置页面添加自定义配置目录。</value>
   </data>
   <data name="NoConfiguredDirectory" xml:space="preserve">
     <value>当前未配置任何 FFXIV 配置目录。</value>
@@ -727,7 +727,7 @@
     <value>目标</value>
   </data>
   <data name="PortraitBackupArea" xml:space="preserve">
-    <value>肖像备份区</value>
+    <value>备份</value>
   </data>
   <data name="RefreshPortraits" xml:space="preserve">
     <value>刷新肖像</value>
@@ -748,7 +748,7 @@
     <value>恢复和迁移会覆盖右栏选中的具体肖像，并先自动创建恢复点。</value>
   </data>
   <data name="PortraitOperationRules" xml:space="preserve">
-    <value>操作规则：角色 → 角色为迁移，角色 → 肖像备份区为备份，肖像备份区 → 角色为恢复。相同数据源及备份区之间不可操作。</value>
+    <value>操作规则：角色 → 角色为迁移，角色 → 备份为创建备份，备份 → 角色为恢复。相同数据源之间不可操作。</value>
   </data>
   <data name="PortraitSelectSpecificHint" xml:space="preserve">
     <value>请在左右两栏选择数据源，并明确选择要操作的肖像。</value>
@@ -832,10 +832,10 @@
     <value>将永久删除选中的角色形象备份。请再次点击「确认删除」。</value>
   </data>
   <data name="AppearanceBackupArea" xml:space="preserve">
-    <value>角色形象备份区</value>
+    <value>备份</value>
   </data>
   <data name="AppearanceDualListHint" xml:space="preserve">
-    <value>左栏固定为游戏配置源，右栏可以选择备份区或另一个配置源。请选择具体形象或目标栏位。</value>
+    <value>左栏固定为游戏配置源，右栏可以选择备份或另一个配置源。请选择具体形象或目标栏位。</value>
   </data>
   <data name="AppearanceSource" xml:space="preserve">
     <value>来源</value>
@@ -877,13 +877,13 @@
     <value>角色形象操作失败：{0}</value>
   </data>
   <data name="AppearanceMigratedFormat" xml:space="preserve">
-    <value>角色形象已迁移到栏位 {0:D2}，来源形象已保存到备份区。</value>
+    <value>角色形象已迁移到栏位 {0:D2}，来源形象已保存为备份。</value>
   </data>
   <data name="AppearanceMigratedWithRecoveryFormat" xml:space="preserve">
-    <value>角色形象已迁移到栏位 {0:D2}，来源形象和目标覆盖前恢复点均已保存到备份区。</value>
+    <value>角色形象已迁移到栏位 {0:D2}，来源形象和目标覆盖前恢复点均已保存为备份。</value>
   </data>
   <data name="AppearanceOperationRules" xml:space="preserve">
-    <value>操作规则：游戏配置源 → 备份区为备份，备份区 → 左栏配置源为恢复，两个不同配置源之间为迁移。左栏的数据源类型固定为游戏配置源。</value>
+    <value>操作规则：游戏配置源 → 备份为创建备份，备份 → 左栏配置源为恢复，两个不同配置源之间为迁移。左栏的数据源类型固定为游戏配置源。</value>
   </data>
   <data name="UnknownValue" xml:space="preserve">
     <value>未知</value>
@@ -902,5 +902,29 @@
   </data>
   <data name="AppearanceBackupNotSelected" xml:space="preserve">
     <value>未选择角色形象备份。</value>
+  </data>
+  <data name="EditPortraitBackupScheme" xml:space="preserve">
+    <value>编辑方案信息</value>
+  </data>
+  <data name="EditPortraitBackupSchemeTitle" xml:space="preserve">
+    <value>编辑肖像备份方案</value>
+  </data>
+  <data name="PortraitSchemeNameLabel" xml:space="preserve">
+    <value>方案名称</value>
+  </data>
+  <data name="PortraitNoteLabel" xml:space="preserve">
+    <value>备注</value>
+  </data>
+  <data name="SaveChanges" xml:space="preserve">
+    <value>保存修改</value>
+  </data>
+  <data name="PortraitSchemeUpdatedFormat" xml:space="preserve">
+    <value>已保存肖像备份方案「{0}」。</value>
+  </data>
+  <data name="PortraitSchemeUpdatedOutsideFilter" xml:space="preserve">
+    <value>方案信息已保存，但修改后的方案不符合当前搜索条件。</value>
+  </data>
+  <data name="UpdatePortraitSchemeFailedFormat" xml:space="preserve">
+    <value>编辑肖像备份方案失败：{0}</value>
   </data>
 </root>

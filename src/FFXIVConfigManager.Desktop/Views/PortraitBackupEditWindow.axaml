@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FFXIVConfigManager.Desktop.ViewModels"
+        xmlns:l10n="using:FFXIVConfigManager.Desktop.Localization"
+        x:Class="FFXIVConfigManager.Desktop.Views.PortraitBackupEditWindow"
+        x:DataType="vm:PortraitBackupEditViewModel"
+        Width="480"
+        Height="400"
+        MinWidth="440"
+        MinHeight="360"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding Title}">
+    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Title}" />
+        <TextBlock Grid.Row="1" Margin="0,6,0,0"
+                   Text="{l10n:Tr PortraitSchemeNameLabel}" />
+        <TextBox Grid.Row="2" Text="{Binding SchemeName}"
+                 MaxLength="{Binding MaximumSchemeNameLength}" />
+        <Grid Grid.Row="3" RowDefinitions="Auto,*" RowSpacing="8">
+            <TextBlock Text="{l10n:Tr PortraitNoteLabel}" />
+            <TextBox Grid.Row="1" Text="{Binding Note}"
+                     MaxLength="{Binding MaximumNoteLength}"
+                     AcceptsReturn="True" TextWrapping="Wrap" />
+        </Grid>
+        <Button Grid.Row="4" MinWidth="104" HorizontalAlignment="Right"
+                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                Command="{Binding SaveCommand}" Content="{l10n:Tr SaveChanges}" />
+    </Grid>
+</Window>

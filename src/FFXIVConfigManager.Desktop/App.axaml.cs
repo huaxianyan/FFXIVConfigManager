@@ -81,6 +81,9 @@ public partial class App : Avalonia.Application
                 () => window,
                 settingsBackupService,
                 text);
+            var portraitBackupEditDialog = new AvaloniaPortraitBackupEditDialogService(
+                () => window,
+                text);
             var currentVersion = typeof(App).Assembly.GetName().Version
                 ?? new Version(0, 0, 0);
             var updateHttpClient = new HttpClient
@@ -104,6 +107,7 @@ public partial class App : Avalonia.Application
                 characterBackupDialog,
                 appearanceBackupService,
                 portraitManagementService,
+                portraitBackupEditDialog,
                 settingsBackupDialog,
                 updateService,
                 updateInstaller,

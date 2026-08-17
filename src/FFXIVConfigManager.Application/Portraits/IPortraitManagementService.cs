@@ -63,6 +63,13 @@ public interface IPortraitManagementService
         string libraryRoot,
         CancellationToken cancellationToken = default);
 
+    Task<PortraitBackupEntry> UpdateBackupMetadataAsync(
+        PortraitBackupEntry backup,
+        string libraryRoot,
+        string schemeName,
+        string note,
+        CancellationToken cancellationToken = default);
+
     Task DeleteBackupAsync(
         PortraitBackupEntry backup,
         string libraryRoot,

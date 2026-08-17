@@ -3,7 +3,38 @@
              xmlns:vm="using:FFXIVConfigManager.Desktop.ViewModels"
              xmlns:l10n="using:FFXIVConfigManager.Desktop.Localization"
              x:Class="FFXIVConfigManager.Desktop.Views.PortraitManagementView"
-             x:DataType="vm:PortraitManagementViewModel">
+             x:DataType="vm:PortraitManagementViewModel"
+             x:Name="PortraitManagementRoot">
+    <UserControl.Resources>
+        <ControlTheme x:Key="PortraitEditButtonTheme" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="#18808080" />
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="Background" Value="#30808080" />
+            </Style>
+            <Style Selector="^:focus-visible">
+                <Setter Property="BorderBrush" Value="#805B8DEF" />
+            </Style>
+        </ControlTheme>
+    </UserControl.Resources>
+
     <Grid Margin="28" RowDefinitions="Auto,*,Auto" RowSpacing="14">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
             <TextBlock VerticalAlignment="Center" Opacity="0.72" TextWrapping="Wrap"
@@ -55,13 +86,26 @@
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                             <TextBlock FontWeight="SemiBold" Text="{Binding SchemeName}"
                                                        TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Column="1" FontSize="11" Opacity="0.7"
-                                                       Text="{Binding IntegrityText}" />
+                                            <Button Grid.Column="1" Width="26" Height="26" Padding="5"
+                                                    Theme="{StaticResource PortraitEditButtonTheme}"
+                                                    HorizontalContentAlignment="Center"
+                                                    VerticalContentAlignment="Center"
+                                                    IsVisible="{Binding $parent[ListBoxItem].IsSelected}"
+                                                    Command="{Binding DataContext.EditBackupCommand, ElementName=PortraitManagementRoot}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip.Tip="{l10n:Tr EditPortraitBackupScheme}">
+                                                <PathIcon Data="M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87L20.71,7.04Z" />
+                                            </Button>
                                         </Grid>
                                         <TextBlock Grid.Row="1" Opacity="0.72" Text="{Binding Note}"
                                                    TextWrapping="Wrap" MaxLines="2" />
-                                        <TextBlock Grid.Row="2" FontSize="11" Opacity="0.62"
-                                                   Text="{Binding BackupCreatedAtText}" />
+                                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBlock FontSize="11" Opacity="0.62"
+                                                       Text="{Binding BackupCreatedAtText}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" FontSize="11" Opacity="0.7"
+                                                       Text="{Binding IntegrityText}" />
+                                        </Grid>
                                     </Grid>
                                 </Panel>
                             </DataTemplate>
@@ -140,13 +184,26 @@
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                             <TextBlock FontWeight="SemiBold" Text="{Binding SchemeName}"
                                                        TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Column="1" FontSize="11" Opacity="0.7"
-                                                       Text="{Binding IntegrityText}" />
+                                            <Button Grid.Column="1" Width="26" Height="26" Padding="5"
+                                                    Theme="{StaticResource PortraitEditButtonTheme}"
+                                                    HorizontalContentAlignment="Center"
+                                                    VerticalContentAlignment="Center"
+                                                    IsVisible="{Binding $parent[ListBoxItem].IsSelected}"
+                                                    Command="{Binding DataContext.EditBackupCommand, ElementName=PortraitManagementRoot}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip.Tip="{l10n:Tr EditPortraitBackupScheme}">
+                                                <PathIcon Data="M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87L20.71,7.04Z" />
+                                            </Button>
                                         </Grid>
                                         <TextBlock Grid.Row="1" Opacity="0.72" Text="{Binding Note}"
                                                    TextWrapping="Wrap" MaxLines="2" />
-                                        <TextBlock Grid.Row="2" FontSize="11" Opacity="0.62"
-                                                   Text="{Binding BackupCreatedAtText}" />
+                                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBlock FontSize="11" Opacity="0.62"
+                                                       Text="{Binding BackupCreatedAtText}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" FontSize="11" Opacity="0.7"
+                                                       Text="{Binding IntegrityText}" />
+                                        </Grid>
                                     </Grid>
                                 </Panel>
                             </DataTemplate>

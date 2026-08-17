@@ -61,7 +61,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- 右栏可以在备份区和任意游戏配置源之间切换。 -->
+            <!-- 右栏可以在备份和任意游戏配置源之间切换。 -->
             <Border Grid.Column="2" Padding="14" CornerRadius="10" BorderThickness="1"
                     BorderBrush="#40808080" Background="#0A808080">
                 <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">

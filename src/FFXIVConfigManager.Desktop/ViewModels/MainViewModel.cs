@@ -28,6 +28,7 @@ public partial class MainViewModel(
     ICharacterBackupDialogService characterBackupDialog,
     IAppearanceBackupService appearanceBackupService,
     IPortraitManagementService portraitManagementService,
+    IPortraitBackupEditDialogService portraitBackupEditDialog,
     ISettingsBackupDialogService settingsBackupDialog,
     IApplicationUpdateService applicationUpdateService,
     IApplicationUpdateInstaller applicationUpdateInstaller,
@@ -836,6 +837,7 @@ public partial class MainViewModel(
             portraitManagementService,
             libraryRoot,
             characters,
+            portraitBackupEditDialog,
             text);
         PortraitManager = viewModel;
         await viewModel.InitializeAsync(cancellationToken);

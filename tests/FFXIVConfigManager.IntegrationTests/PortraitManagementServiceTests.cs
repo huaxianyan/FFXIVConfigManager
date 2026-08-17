@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.IO.Compression;
 using System.Text;
 using FFXIVConfigManager.Application.Portraits;
 using FFXIVConfigManager.Domain.Portraits;
@@ -45,6 +46,86 @@ public sealed class PortraitManagementServiceTests : IDisposable
         Assert.Equal(1, scanned.Manifest.Source.GearsetNumber);
         Assert.Equal("骑士", scanned.Manifest.Source.GearsetName);
         Assert.Equal(PortraitBackupReason.Manual, scanned.Manifest.Reason);
+    }
+
+    [Fact]
+    public async Task UpdateBackupMetadataAsync_ChangesOnlySchemeNameAndNote()
+    {
+        var character = CreateCharacter("FFXIV_CHR1111111111111111", 1, "骑士", 19, 0, 1_700_000_000);
+        var library = Path.Combine(_root, "library");
+        var service = new ZipPortraitManagementService();
+        var source = Assert.Single(await service.ScanCharacterAsync(character));
+        var backup = await service.CreateBackupAsync(source, library, "旧方案", "旧备注");
+        var originalManifest = backup.Manifest!;
+        var originalData = ReadArchiveEntry(backup.ArchivePath, PortraitBackupManifest.DataEntryName);
+
+        var updated = await service.UpdateBackupMetadataAsync(
+            backup,
+            library,
+            " 新方案 ",
+            " 新备注 ");
+        var scanned = Assert.Single(await service.ScanBackupsAsync(library));
+
+        Assert.Equal("新方案", updated.Manifest!.SchemeName);
+        Assert.Equal("新备注", updated.Manifest.Note);
+        Assert.Equal(originalManifest with { SchemeName = "新方案", Note = "新备注" }, updated.Manifest);
+        Assert.Equal(updated.Manifest, scanned.Manifest);
+        Assert.Equal(originalData, ReadArchiveEntry(updated.ArchivePath, PortraitBackupManifest.DataEntryName));
+    }
+
+    [Fact]
+    public async Task UpdateBackupMetadataAsync_InvalidInputLeavesArchiveUnchanged()
+    {
+        var character = CreateCharacter("FFXIV_CHR1111111111111111", 1, "骑士", 19, 0, 1_700_000_000);
+        var library = Path.Combine(_root, "library");
+        var service = new ZipPortraitManagementService();
+        var source = Assert.Single(await service.ScanCharacterAsync(character));
+        var backup = await service.CreateBackupAsync(source, library, "原方案", "原备注");
+        var originalArchive = await File.ReadAllBytesAsync(backup.ArchivePath);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            service.UpdateBackupMetadataAsync(backup, library, " ", "新备注"));
+
+        Assert.Equal(originalArchive, await File.ReadAllBytesAsync(backup.ArchivePath));
+    }
+
+    [Fact]
+    public async Task UpdateBackupMetadataAsync_RejectsSelectionChangedAfterScan()
+    {
+        var character = CreateCharacter("FFXIV_CHR1111111111111111", 1, "骑士", 19, 0, 1_700_000_000);
+        var library = Path.Combine(_root, "library");
+        var service = new ZipPortraitManagementService();
+        var source = Assert.Single(await service.ScanCharacterAsync(character));
+        var original = await service.CreateBackupAsync(source, library, "原方案", "原备注");
+        await service.UpdateBackupMetadataAsync(original, library, "其他修改", "其他备注");
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            service.UpdateBackupMetadataAsync(original, library, "过期修改", "过期备注"));
+
+        var current = Assert.Single(await service.ScanBackupsAsync(library));
+        Assert.Equal("其他修改", current.Manifest!.SchemeName);
+        Assert.Equal("其他备注", current.Manifest.Note);
+    }
+
+    [Fact]
+    public async Task UpdateBackupMetadataAsync_RejectsArchiveOutsideCurrentLibrary()
+    {
+        Directory.CreateDirectory(_root);
+        var outsidePath = Path.Combine(_root, "outside.ffxivportrait.zip");
+        await File.WriteAllBytesAsync(outsidePath, [1, 2, 3]);
+        var entry = new PortraitBackupEntry(
+            outsidePath,
+            DateTimeOffset.UtcNow,
+            PortraitBackupIntegrity.Corrupted,
+            null,
+            null,
+            ["损坏"]);
+        var service = new ZipPortraitManagementService();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdateBackupMetadataAsync(entry, Path.Combine(_root, "library"), "方案", "备注"));
+
+        Assert.Equal([1, 2, 3], await File.ReadAllBytesAsync(outsidePath));
     }
 
     [Fact]
@@ -182,6 +263,16 @@ public sealed class PortraitManagementServiceTests : IDisposable
         {
             Directory.Delete(_root, recursive: true);
         }
+    }
+
+    private static byte[] ReadArchiveEntry(string archivePath, string entryName)
+    {
+        using var archive = ZipFile.OpenRead(archivePath);
+        var entry = archive.GetEntry(entryName)!;
+        using var source = entry.Open();
+        using var destination = new MemoryStream();
+        source.CopyTo(destination);
+        return destination.ToArray();
     }
 
     private string CreateCharacter(

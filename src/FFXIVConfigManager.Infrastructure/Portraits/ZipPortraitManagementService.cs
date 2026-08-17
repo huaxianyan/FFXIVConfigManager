@@ -199,6 +199,103 @@ public sealed class ZipPortraitManagementService(
         return new PortraitTransferResult(targetPath, recoveryPoint);
     }
 
+    public async Task<PortraitBackupEntry> UpdateBackupMetadataAsync(
+        PortraitBackupEntry backup,
+        string libraryRoot,
+        string schemeName,
+        string note,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(backup);
+        var path = GetValidatedBackupPath(backup, libraryRoot);
+        var current = await VerifyArchiveAsync(path, cancellationToken);
+        if (backup.Integrity != PortraitBackupIntegrity.Valid ||
+            backup.Manifest is null ||
+            backup.Data is null ||
+            current.Integrity != PortraitBackupIntegrity.Valid ||
+            current.Manifest != backup.Manifest ||
+            current.Data is null ||
+            !current.Data.SerializedRecord.AsSpan().SequenceEqual(backup.Data.SerializedRecord))
+        {
+            throw new InvalidDataException("肖像备份已变化、损坏或不再可用，请刷新后重试。");
+        }
+
+        var updatedManifest = current.Manifest with
+        {
+            SchemeName = schemeName.Trim(),
+            Note = note.Trim(),
+        };
+        updatedManifest.Validate();
+        if (updatedManifest == current.Manifest)
+        {
+            return current;
+        }
+
+        var originalArchive = await ReadStableFileAsync(path, cancellationToken);
+        var directory = Path.GetDirectoryName(path)!;
+        var temporaryPath = Path.Combine(directory, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+        var rollbackPath = Path.Combine(directory, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.rollback");
+        var keepRollback = false;
+        try
+        {
+            await WriteArchiveAsync(
+                temporaryPath,
+                updatedManifest,
+                current.Data.SerializedRecord,
+                cancellationToken);
+            var staged = await VerifyArchiveAsync(temporaryPath, cancellationToken);
+            if (staged.Integrity != PortraitBackupIntegrity.Valid ||
+                staged.Manifest != updatedManifest ||
+                staged.Data is null ||
+                !staged.Data.SerializedRecord.AsSpan().SequenceEqual(current.Data.SerializedRecord))
+            {
+                throw new InvalidDataException("更新后的肖像备份校验失败。");
+            }
+
+            var beforeCommit = await ReadStableFileAsync(path, cancellationToken);
+            if (!beforeCommit.AsSpan().SequenceEqual(originalArchive))
+            {
+                throw new IOException("肖像备份在编辑期间已被其他程序修改，请刷新后重试。");
+            }
+
+            File.Replace(temporaryPath, path, rollbackPath, ignoreMetadataErrors: true);
+            try
+            {
+                var updated = await VerifyArchiveAsync(path, cancellationToken);
+                if (updated.Integrity != PortraitBackupIntegrity.Valid || updated.Manifest != updatedManifest)
+                {
+                    throw new InvalidDataException("肖像备份写入后校验失败。");
+                }
+
+                return updated;
+            }
+            catch (Exception exception)
+            {
+                try
+                {
+                    File.Replace(rollbackPath, path, null, ignoreMetadataErrors: true);
+                }
+                catch (Exception rollbackException)
+                {
+                    keepRollback = true;
+                    throw new IOException(
+                        $"编辑方案失败且原备份回滚不完整：{exception.Message}；回滚错误：{rollbackException.Message}。回滚副本：{rollbackPath}",
+                        exception);
+                }
+
+                throw;
+            }
+        }
+        finally
+        {
+            TryDeleteFile(temporaryPath);
+            if (!keepRollback)
+            {
+                TryDeleteFile(rollbackPath);
+            }
+        }
+    }
+
     public Task DeleteBackupAsync(
         PortraitBackupEntry backup,
         string libraryRoot,
@@ -207,14 +304,7 @@ public sealed class ZipPortraitManagementService(
         ArgumentNullException.ThrowIfNull(backup);
         cancellationToken.ThrowIfCancellationRequested();
         var root = Path.GetFullPath(GetBackupRoot(libraryRoot));
-        var path = Path.GetFullPath(backup.ArchivePath);
-        var relativePath = Path.GetRelativePath(root, path);
-        if (relativePath == ".." || relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-            Path.IsPathRooted(relativePath) || !path.EndsWith(ArchiveExtension, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("只能删除当前肖像备份区中的方案文件。");
-        }
-
+        var path = GetValidatedBackupPath(backup, libraryRoot);
         if (!File.Exists(path))
         {
             throw new FileNotFoundException("要删除的肖像备份方案已经不存在。", path);
@@ -223,6 +313,24 @@ public sealed class ZipPortraitManagementService(
         File.Delete(path);
         DeleteEmptyBackupDirectories(Path.GetDirectoryName(path), root);
         return Task.CompletedTask;
+    }
+
+    private static string GetValidatedBackupPath(
+        PortraitBackupEntry backup,
+        string libraryRoot)
+    {
+        var root = Path.GetFullPath(GetBackupRoot(libraryRoot));
+        var path = Path.GetFullPath(backup.ArchivePath);
+        var relativePath = Path.GetRelativePath(root, path);
+        if (relativePath == ".." ||
+            relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+            Path.IsPathRooted(relativePath) ||
+            !path.EndsWith(ArchiveExtension, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("只能编辑或删除当前肖像备份区中的方案文件。");
+        }
+
+        return path;
     }
 
     private async Task<PortraitData> ResolveTransferSourceAsync(
@@ -299,33 +407,7 @@ public sealed class ZipPortraitManagementService(
 
         try
         {
-            await using (var output = new FileStream(
-                             temporaryPath,
-                             FileMode.CreateNew,
-                             FileAccess.Write,
-                             FileShare.None,
-                             16 * 1024,
-                             FileOptions.Asynchronous | FileOptions.WriteThrough))
-            using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
-            {
-                var manifestEntry = archive.CreateEntry(
-                    PortraitBackupManifest.ManifestEntryName,
-                    CompressionLevel.Fastest);
-                await using (var stream = manifestEntry.Open())
-                {
-                    await JsonSerializer.SerializeAsync(
-                        stream,
-                        manifest,
-                        SerializerOptions,
-                        cancellationToken);
-                }
-
-                var dataEntry = archive.CreateEntry(
-                    PortraitBackupManifest.DataEntryName,
-                    CompressionLevel.Fastest);
-                await using var dataStream = dataEntry.Open();
-                await dataStream.WriteAsync(data, cancellationToken);
-            }
+            await WriteArchiveAsync(temporaryPath, manifest, data, cancellationToken);
 
             var verification = await VerifyArchiveAsync(temporaryPath, cancellationToken);
             if (verification.Integrity != PortraitBackupIntegrity.Valid)
@@ -341,6 +423,39 @@ public sealed class ZipPortraitManagementService(
         {
             TryDeleteFile(temporaryPath);
         }
+    }
+
+    private static async Task WriteArchiveAsync(
+        string path,
+        PortraitBackupManifest manifest,
+        ReadOnlyMemory<byte> data,
+        CancellationToken cancellationToken)
+    {
+        await using var output = new FileStream(
+            path,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.None,
+            16 * 1024,
+            FileOptions.Asynchronous | FileOptions.WriteThrough);
+        using var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true);
+        var manifestEntry = archive.CreateEntry(
+            PortraitBackupManifest.ManifestEntryName,
+            CompressionLevel.Fastest);
+        await using (var stream = manifestEntry.Open())
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                manifest,
+                SerializerOptions,
+                cancellationToken);
+        }
+
+        var dataEntry = archive.CreateEntry(
+            PortraitBackupManifest.DataEntryName,
+            CompressionLevel.Fastest);
+        await using var dataStream = dataEntry.Open();
+        await dataStream.WriteAsync(data, cancellationToken);
     }
 
     private static async Task<PortraitBackupEntry> VerifyArchiveAsync(

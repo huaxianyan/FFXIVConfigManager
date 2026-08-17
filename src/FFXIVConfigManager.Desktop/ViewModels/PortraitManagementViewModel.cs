@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FFXIVConfigManager.Application.Portraits;
 using FFXIVConfigManager.Desktop.Localization;
+using FFXIVConfigManager.Desktop.Services;
 using FFXIVConfigManager.Domain.Portraits;
 
 namespace FFXIVConfigManager.Desktop.ViewModels;
@@ -25,6 +26,7 @@ public sealed partial class PortraitManagementViewModel : ViewModelBase
 {
     private readonly IPortraitManagementService _service;
     private readonly string _libraryRoot;
+    private readonly IPortraitBackupEditDialogService _editDialog;
     private readonly ITextLocalizer _text;
     private readonly List<PortraitListItemViewModel> _allLeftItems = [];
     private readonly List<PortraitListItemViewModel> _allRightItems = [];
@@ -35,10 +37,12 @@ public sealed partial class PortraitManagementViewModel : ViewModelBase
         IPortraitManagementService service,
         string libraryRoot,
         IReadOnlyList<PortraitSourceOptionViewModel> characters,
+        IPortraitBackupEditDialogService editDialog,
         ITextLocalizer text)
     {
         _service = service;
         _libraryRoot = libraryRoot;
+        _editDialog = editDialog;
         _text = text;
         StatusMessage = text["PortraitSelectSpecificHint"];
         Sources =
@@ -111,6 +115,7 @@ public sealed partial class PortraitManagementViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(SwapDirectionCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteLeftBackupCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteRightBackupCommand))]
+    [NotifyCanExecuteChangedFor(nameof(EditBackupCommand))]
     public partial bool IsBusy { get; private set; }
 
     [ObservableProperty]
@@ -226,6 +231,74 @@ public sealed partial class PortraitManagementViewModel : ViewModelBase
     }
 
     private bool CanSwapDirection() => !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanEditBackup))]
+    private async Task EditBackupAsync(
+        PortraitListItemViewModel? item,
+        CancellationToken cancellationToken)
+    {
+        var backup = item?.BackupEntry;
+        if (backup?.Integrity != PortraitBackupIntegrity.Valid || backup.Manifest is null)
+        {
+            return;
+        }
+
+        CancelAllConfirmations();
+        var result = await _editDialog.ShowAsync(
+            backup.Manifest.SchemeName,
+            backup.Manifest.Note,
+            cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var updated = await _service.UpdateBackupMetadataAsync(
+                backup,
+                _libraryRoot,
+                result.SchemeName,
+                result.Note,
+                cancellationToken);
+            var editedOnLeft = ReferenceEquals(item, SelectedLeftItem);
+            await ReloadBackupSidesAsync(cancellationToken);
+            var backupId = updated.Manifest!.BackupId;
+            var visibleItem = editedOnLeft
+                ? LeftItems.FirstOrDefault(candidate => candidate.BackupEntry?.Manifest?.BackupId == backupId)
+                : RightItems.FirstOrDefault(candidate => candidate.BackupEntry?.Manifest?.BackupId == backupId);
+            if (editedOnLeft)
+            {
+                SelectedLeftItem = visibleItem;
+            }
+            else
+            {
+                SelectedRightItem = visibleItem;
+            }
+
+            StatusMessage = visibleItem is null
+                ? _text["PortraitSchemeUpdatedOutsideFilter"]
+                : _text.Format("PortraitSchemeUpdatedFormat", updated.Manifest.SchemeName);
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = _text["PortraitOperationCanceled"];
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = _text.Format("UpdatePortraitSchemeFailedFormat", exception.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private bool CanEditBackup(PortraitListItemViewModel? item) =>
+        !IsBusy &&
+        item?.BackupEntry?.Integrity == PortraitBackupIntegrity.Valid &&
+        item.BackupEntry.Manifest is not null;
 
     [RelayCommand(CanExecute = nameof(CanDeleteLeftBackup))]
     private Task DeleteLeftBackupAsync(CancellationToken cancellationToken) =>
@@ -418,6 +491,22 @@ public sealed partial class PortraitManagementViewModel : ViewModelBase
         IsDirectionReversed
             ? ReloadLeftAsync(cancellationToken)
             : ReloadRightAsync(cancellationToken);
+
+    private Task ReloadBackupSidesAsync(CancellationToken cancellationToken)
+    {
+        var tasks = new List<Task>(2);
+        if (IsLeftBackupArea)
+        {
+            tasks.Add(ReloadLeftAsync(cancellationToken));
+        }
+
+        if (IsRightBackupArea)
+        {
+            tasks.Add(ReloadRightAsync(cancellationToken));
+        }
+
+        return Task.WhenAll(tasks);
+    }
 
     private static bool IsSameSource(
         PortraitSourceOptionViewModel left,
