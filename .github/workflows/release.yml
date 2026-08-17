@@ -82,13 +82,13 @@ jobs:
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
               gh release edit $tag `
-                  --title "FFXIVConfigManager $tag" `
+                  --title $tag `
                   --notes-file $notes
               gh release upload $tag $archive $checksum --clobber
           }
           else {
               gh release create $tag $archive $checksum `
                   --verify-tag `
-                  --title "FFXIVConfigManager $tag" `
+                  --title $tag `
                   --notes-file $notes
           }
