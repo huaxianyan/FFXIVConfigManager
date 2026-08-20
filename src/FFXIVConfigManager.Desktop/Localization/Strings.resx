@@ -556,7 +556,25 @@
     <value>下载并安装</value>
   </data>
   <data name="DownloadingUpdateFormat" xml:space="preserve">
-    <value>正在下载并校验版本 {0}……</value>
+    <value>正在准备下载版本 {0}……</value>
+  </data>
+  <data name="WaitingForUpdateDataFormat" xml:space="preserve">
+    <value>已连接下载服务器，正在等待版本 {0} 的下载数据……</value>
+  </data>
+  <data name="DownloadingUpdateProgressFormat" xml:space="preserve">
+    <value>正在下载版本 {0}：{1} / {2}（{3}%）。</value>
+  </data>
+  <data name="DownloadingUpdateWithoutTotalFormat" xml:space="preserve">
+    <value>正在下载版本 {0}：已下载 {1}。</value>
+  </data>
+  <data name="DownloadSizeKilobytesFormat" xml:space="preserve">
+    <value>{0:F0} KB</value>
+  </data>
+  <data name="DownloadSizeMegabytesFormat" xml:space="preserve">
+    <value>{0:F1} MB</value>
+  </data>
+  <data name="PreparingUpdate" xml:space="preserve">
+    <value>下载完成，正在校验并准备更新……</value>
   </data>
   <data name="ApplyingUpdate" xml:space="preserve">
     <value>更新包已校验，应用即将关闭、完成替换并自动重启。</value>

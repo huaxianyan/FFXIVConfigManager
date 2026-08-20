@@ -187,6 +187,12 @@ public partial class MainViewModel(
     public partial bool IsUpdateBusy { get; private set; }
 
     [ObservableProperty]
+    public partial bool IsUpdateProgressIndeterminate { get; private set; } = true;
+
+    [ObservableProperty]
+    public partial double UpdateProgressValue { get; private set; }
+
+    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(InstallUpdateCommand))]
     public partial bool IsUpdateAvailable { get; private set; }
 
@@ -849,6 +855,8 @@ public partial class MainViewModel(
     public async Task CheckForUpdatesAsync(CancellationToken cancellationToken = default)
     {
         IsUpdateBusy = true;
+        IsUpdateProgressIndeterminate = true;
+        UpdateProgressValue = 0;
         UpdateStatusText = text["CheckingForUpdates"];
         try
         {
@@ -884,13 +892,17 @@ public partial class MainViewModel(
         }
 
         IsUpdateBusy = true;
-        UpdateStatusText = text.Format(
-            "DownloadingUpdateFormat",
-            _availableRelease.Version.ToString(3));
+        IsUpdateProgressIndeterminate = true;
+        UpdateProgressValue = 0;
+        var version = _availableRelease.Version.ToString(3);
+        UpdateStatusText = text.Format("DownloadingUpdateFormat", version);
+        var progress = new Progress<ApplicationUpdateProgress>(updateProgress =>
+            ReportUpdateProgress(updateProgress, version));
         try
         {
             var prepared = await applicationUpdateService.PrepareAsync(
                 _availableRelease,
+                progress,
                 cancellationToken);
             UpdateStatusText = text["ApplyingUpdate"];
             applicationUpdateInstaller.Launch(prepared);
@@ -908,6 +920,51 @@ public partial class MainViewModel(
             IsUpdateBusy = false;
         }
     }
+
+    private void ReportUpdateProgress(ApplicationUpdateProgress progress, string version)
+    {
+        if (progress.Stage == ApplicationUpdateStage.Preparing)
+        {
+            IsUpdateProgressIndeterminate = true;
+            UpdateStatusText = text["PreparingUpdate"];
+            return;
+        }
+
+        if (progress.BytesReceived == 0)
+        {
+            IsUpdateProgressIndeterminate = true;
+            UpdateStatusText = text.Format("WaitingForUpdateDataFormat", version);
+            return;
+        }
+
+        var receivedSize = FormatDownloadSize(progress.BytesReceived);
+        if (progress.TotalBytes is not > 0)
+        {
+            IsUpdateProgressIndeterminate = true;
+            UpdateStatusText = text.Format(
+                "DownloadingUpdateWithoutTotalFormat",
+                version,
+                receivedSize);
+            return;
+        }
+
+        var percentage = Math.Clamp(
+            progress.BytesReceived * 100d / progress.TotalBytes.Value,
+            0,
+            100);
+        IsUpdateProgressIndeterminate = false;
+        UpdateProgressValue = percentage;
+        UpdateStatusText = text.Format(
+            "DownloadingUpdateProgressFormat",
+            version,
+            receivedSize,
+            FormatDownloadSize(progress.TotalBytes.Value),
+            Math.Round(percentage));
+    }
+
+    private string FormatDownloadSize(long bytes) => bytes < 1_000_000
+        ? text.Format("DownloadSizeKilobytesFormat", bytes / 1_000d)
+        : text.Format("DownloadSizeMegabytesFormat", bytes / 1_000_000d);
 
     private bool CanCheckForUpdates() => !IsUpdateBusy;
 

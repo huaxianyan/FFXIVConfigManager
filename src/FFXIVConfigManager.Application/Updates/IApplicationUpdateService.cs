@@ -23,6 +23,17 @@ public sealed record PreparedApplicationUpdate(
     string WorkingDirectory,
     string PackageSha256);
 
+public enum ApplicationUpdateStage
+{
+    Downloading,
+    Preparing,
+}
+
+public sealed record ApplicationUpdateProgress(
+    ApplicationUpdateStage Stage,
+    long BytesReceived = 0,
+    long? TotalBytes = null);
+
 public interface IApplicationUpdateService
 {
     Task<ApplicationUpdateStatus> CheckAsync(
@@ -30,5 +41,6 @@ public interface IApplicationUpdateService
 
     Task<PreparedApplicationUpdate> PrepareAsync(
         ApplicationRelease release,
+        IProgress<ApplicationUpdateProgress>? progress = null,
         CancellationToken cancellationToken = default);
 }

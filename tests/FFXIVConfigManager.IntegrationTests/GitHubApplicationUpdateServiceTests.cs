@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using FFXIVConfigManager.Application.Updates;
 using FFXIVConfigManager.Infrastructure.Updates;
 
 namespace FFXIVConfigManager.IntegrationTests;
@@ -34,7 +35,7 @@ public sealed class GitHubApplicationUpdateServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task PrepareAsync_ValidPackageCreatesVerifiedExecutableAndUpdaterCopy()
+    public async Task PrepareAsync_DownloadReportsProgressBeforePreparingVerifiedUpdate()
     {
         var package = CreatePackage(includeDocumentation: true);
         using var client = CreateClient(package, checksumOverride: null);
@@ -44,9 +45,18 @@ public sealed class GitHubApplicationUpdateServiceTests : IDisposable
             _root,
             LatestUri);
         var release = (await service.CheckAsync()).LatestRelease!;
+        var progress = new RecordingProgress();
 
-        var prepared = await service.PrepareAsync(release);
+        var prepared = await service.PrepareAsync(release, progress);
 
+        var downloadReports = progress.Reports
+            .Where(report => report.Stage == ApplicationUpdateStage.Downloading)
+            .ToArray();
+        Assert.NotEmpty(downloadReports);
+        Assert.Equal(0, downloadReports[0].BytesReceived);
+        Assert.Equal(package.Length, downloadReports[0].TotalBytes);
+        Assert.Equal(package.Length, downloadReports[^1].BytesReceived);
+        Assert.Equal(ApplicationUpdateStage.Preparing, progress.Reports[^1].Stage);
         Assert.True(File.Exists(prepared.PackageExecutablePath));
         Assert.True(File.Exists(prepared.UpdaterExecutablePath));
         Assert.Equal(
@@ -174,6 +184,13 @@ public sealed class GitHubApplicationUpdateServiceTests : IDisposable
         var entry = archive.CreateEntry(name);
         using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
         writer.Write(content);
+    }
+
+    private sealed class RecordingProgress : IProgress<ApplicationUpdateProgress>
+    {
+        public List<ApplicationUpdateProgress> Reports { get; } = [];
+
+        public void Report(ApplicationUpdateProgress value) => Reports.Add(value);
     }
 
     private sealed class StubHttpMessageHandler(

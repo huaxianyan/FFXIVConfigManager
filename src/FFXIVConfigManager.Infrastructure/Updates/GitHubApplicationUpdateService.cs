@@ -86,6 +86,7 @@ public sealed class GitHubApplicationUpdateService : IApplicationUpdateService
 
     public async Task<PreparedApplicationUpdate> PrepareAsync(
         ApplicationRelease release,
+        IProgress<ApplicationUpdateProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
         if (release.Version <= _currentVersion)
@@ -116,6 +117,7 @@ public sealed class GitHubApplicationUpdateService : IApplicationUpdateService
                 release.PackageUri,
                 archivePath,
                 MaximumDownloadSize,
+                progress,
                 cancellationToken);
             if (!string.Equals(
                     expectedArchiveHash,
@@ -125,6 +127,7 @@ public sealed class GitHubApplicationUpdateService : IApplicationUpdateService
                 throw new InvalidDataException("更新包 SHA-256 与 Release 校验文件不一致。");
             }
 
+            progress?.Report(new ApplicationUpdateProgress(ApplicationUpdateStage.Preparing));
             var packageExecutablePath = await ExtractPackageAsync(
                 archivePath,
                 packageDirectory,
@@ -175,6 +178,7 @@ public sealed class GitHubApplicationUpdateService : IApplicationUpdateService
         Uri uri,
         string destinationPath,
         long maximumSize,
+        IProgress<ApplicationUpdateProgress>? progress,
         CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(
@@ -182,11 +186,15 @@ public sealed class GitHubApplicationUpdateService : IApplicationUpdateService
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
         response.EnsureSuccessStatusCode();
-        if (response.Content.Headers.ContentLength > maximumSize)
+        var totalBytes = response.Content.Headers.ContentLength;
+        if (totalBytes > maximumSize)
         {
             throw new InvalidDataException("更新包超过允许的大小。");
         }
 
+        progress?.Report(new ApplicationUpdateProgress(
+            ApplicationUpdateStage.Downloading,
+            TotalBytes: totalBytes));
         await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
         await using var destination = new FileStream(
             destinationPath,
@@ -209,6 +217,10 @@ public sealed class GitHubApplicationUpdateService : IApplicationUpdateService
 
             hash.AppendData(buffer, 0, read);
             await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            progress?.Report(new ApplicationUpdateProgress(
+                ApplicationUpdateStage.Downloading,
+                total,
+                totalBytes));
         }
 
         await destination.FlushAsync(cancellationToken);

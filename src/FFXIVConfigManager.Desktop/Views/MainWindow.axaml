@@ -397,8 +397,10 @@
                                 <Button Command="{Binding InstallUpdateCommand}"
                                         IsVisible="{Binding IsUpdateAvailable}"
                                         Content="{l10n:Tr DownloadAndInstallUpdate}" />
-                                <ProgressBar Width="100" IsIndeterminate="True"
-                                             IsVisible="{Binding IsUpdateBusy}" />
+                                <ProgressBar Width="180" Minimum="0" Maximum="100"
+                                             IsIndeterminate="{Binding IsUpdateProgressIndeterminate}"
+                                             IsVisible="{Binding IsUpdateBusy}"
+                                             Value="{Binding UpdateProgressValue}" />
                             </StackPanel>
                             <TextBlock FontSize="12" Opacity="0.6" TextWrapping="Wrap"
                                        IsVisible="{Binding !IsAutomaticUpdateSupported}"
