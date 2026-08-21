@@ -47,6 +47,8 @@ public sealed class SettingsServiceTests
             [currentAlias])
         {
             SnapshotLibraryPath = "/local/backups",
+            IsUpdateProxyEnabled = true,
+            UpdateProxyAddress = "socks5://127.0.0.1:7890/",
         });
         var service = new SettingsService(store);
         var backup = new SettingsBackupDocument(
@@ -62,6 +64,27 @@ public sealed class SettingsServiceTests
         Assert.Equal([backupProfile], restored.CustomProfiles);
         Assert.Equal([currentAlias], restored.CharacterAliases);
         Assert.Equal("/local/backups", restored.SnapshotLibraryPath);
+        Assert.True(restored.IsUpdateProxyEnabled);
+        Assert.Equal("socks5://127.0.0.1:7890/", restored.UpdateProxyAddress);
+    }
+
+    [Fact]
+    public async Task UpdateProxy_DisablingPreservesSavedEndpointForNextEnable()
+    {
+        var store = new MemorySettingsStore();
+        var service = new SettingsService(store);
+
+        var address = await service.SetUpdateProxyEndpointAsync(
+            "socks5",
+            "127.0.0.1",
+            7890);
+        await service.SetUpdateProxyEnabledAsync(true);
+        await service.SetUpdateProxyEnabledAsync(false);
+
+        var settings = await service.GetAsync();
+        Assert.False(settings.IsUpdateProxyEnabled);
+        Assert.Equal("socks5://127.0.0.1:7890/", address);
+        Assert.Equal(address, settings.UpdateProxyAddress);
     }
 
     [Fact]

@@ -84,9 +84,18 @@ public partial class App : Avalonia.Application
             var portraitBackupEditDialog = new AvaloniaPortraitBackupEditDialogService(
                 () => window,
                 text);
+            var updateProxyDialog = new AvaloniaUpdateProxyDialogService(
+                () => window,
+                new ApplicationUpdateProxyTester(),
+                text);
             var currentVersion = typeof(App).Assembly.GetName().Version
                 ?? new Version(0, 0, 0);
-            var updateHttpClient = new HttpClient
+            var updateProxy = new ConfigurableApplicationUpdateProxy();
+            var updateHttpClient = new HttpClient(new SocketsHttpHandler
+            {
+                Proxy = updateProxy,
+                UseProxy = true,
+            })
             {
                 Timeout = TimeSpan.FromMinutes(15),
             };
@@ -110,6 +119,8 @@ public partial class App : Avalonia.Application
                 portraitBackupEditDialog,
                 settingsBackupDialog,
                 updateService,
+                updateProxy,
+                updateProxyDialog,
                 updateInstaller,
                 folderPicker,
                 text);
@@ -119,10 +130,15 @@ public partial class App : Avalonia.Application
             };
             desktop.MainWindow = window;
 
-            _ = viewModel.RefreshAsync();
-            _ = viewModel.CheckForUpdatesAsync();
+            _ = InitializeAsync(viewModel);
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static async Task InitializeAsync(MainViewModel viewModel)
+    {
+        await viewModel.RefreshAsync();
+        await viewModel.CheckForUpdatesAsync();
     }
 }

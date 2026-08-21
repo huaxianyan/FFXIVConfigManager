@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FFXIVConfigManager.Desktop.ViewModels"
+        xmlns:l10n="using:FFXIVConfigManager.Desktop.Localization"
+        x:Class="FFXIVConfigManager.Desktop.Views.UpdateProxySettingsWindow"
+        x:DataType="vm:UpdateProxySettingsViewModel"
+        Width="500"
+        Height="390"
+        MinWidth="460"
+        MinHeight="360"
+        WindowStartupLocation="CenterOwner"
+        Title="{l10n:Tr UpdateProxySettingsTitle}">
+    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
+        <TextBlock FontSize="22" FontWeight="SemiBold"
+                   Text="{l10n:Tr UpdateProxySettingsTitle}" />
+        <TextBlock Grid.Row="1" Margin="0,4,0,0" Opacity="0.7" TextWrapping="Wrap"
+                   Text="{l10n:Tr UpdateProxySettingsDescription}" />
+        <Grid Grid.Row="2" ColumnDefinitions="130,*" ColumnSpacing="12">
+            <StackPanel Spacing="6">
+                <TextBlock Text="{l10n:Tr UpdateProxyProtocol}" />
+                <ComboBox ItemsSource="{Binding Protocols}"
+                          SelectedItem="{Binding SelectedProtocol}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:UpdateProxyProtocolOption">
+                            <TextBlock Text="{Binding DisplayName}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6">
+                <TextBlock Text="{l10n:Tr UpdateProxyIpAddress}" />
+                <TextBox Text="{Binding Host}" />
+            </StackPanel>
+        </Grid>
+        <StackPanel Grid.Row="3" Spacing="6">
+            <TextBlock Text="{l10n:Tr UpdateProxyPort}" />
+            <TextBox MaxLength="5" Text="{Binding Port}" />
+        </StackPanel>
+        <TextBlock Grid.Row="4" FontSize="12" Opacity="0.6" TextWrapping="Wrap"
+                   Text="{l10n:Tr UpdateProxyDialogHint}" />
+        <StackPanel Grid.Row="5" Spacing="8">
+            <TextBlock Opacity="0.75" TextWrapping="Wrap" Text="{Binding StatusText}" />
+            <ProgressBar Height="4" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+        </StackPanel>
+        <StackPanel Grid.Row="6" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="10">
+            <Button MinWidth="104" Command="{Binding TestProxyCommand}"
+                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                    Content="{l10n:Tr TestUpdateProxy}" />
+            <Button MinWidth="104" Command="{Binding SaveCommand}"
+                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                    Content="{l10n:Tr SaveUpdateProxy}" />
+        </StackPanel>
+    </Grid>
+</Window>

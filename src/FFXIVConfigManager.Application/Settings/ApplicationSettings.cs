@@ -18,6 +18,10 @@ public sealed record ApplicationSettings(
 
     public bool ShowOnlyTaggedCharacters { get; init; }
 
+    public bool IsUpdateProxyEnabled { get; init; }
+
+    public string? UpdateProxyAddress { get; init; }
+
     public static ApplicationSettings Empty { get; } =
         new(CurrentSchemaVersion, [], []);
 }

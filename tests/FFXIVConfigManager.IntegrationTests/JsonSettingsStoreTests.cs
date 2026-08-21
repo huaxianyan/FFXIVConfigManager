@@ -25,6 +25,8 @@ public sealed class JsonSettingsStoreTests : IDisposable
             [new CharacterAliasSetting(profile.Id, "FFXIV_CHR0000000000000001", "角色")])
         {
             ShowOnlyTaggedCharacters = true,
+            IsUpdateProxyEnabled = true,
+            UpdateProxyAddress = "socks5://127.0.0.1:7890/",
         };
         var store = new JsonSettingsStore(path);
 
@@ -35,6 +37,8 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.Equal(expected.CustomProfiles, actual.CustomProfiles);
         Assert.Equal(expected.CharacterAliases, actual.CharacterAliases);
         Assert.True(actual.ShowOnlyTaggedCharacters);
+        Assert.True(actual.IsUpdateProxyEnabled);
+        Assert.Equal(expected.UpdateProxyAddress, actual.UpdateProxyAddress);
         Assert.Single(Directory.GetFiles(_root));
         var json = await File.ReadAllTextAsync(path);
         Assert.Contains("\"China\"", json, StringComparison.Ordinal);

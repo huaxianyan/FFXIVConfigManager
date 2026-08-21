@@ -402,6 +402,16 @@
                                              IsVisible="{Binding IsUpdateBusy}"
                                              Value="{Binding UpdateProgressValue}" />
                             </StackPanel>
+                            <Separator />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <CheckBox IsChecked="{Binding IsUpdateProxyEnabled, Mode=TwoWay}"
+                                          IsEnabled="{Binding !IsUpdateBusy}"
+                                          Content="{l10n:Tr EnableUpdateProxy}" />
+                                <Button Grid.Column="1" Command="{Binding OpenUpdateProxySettingsCommand}"
+                                        Content="{l10n:Tr ConfigureUpdateProxy}" />
+                            </Grid>
+                            <TextBlock FontSize="12" Opacity="0.7" TextWrapping="Wrap"
+                                       Text="{Binding UpdateProxyStatusText}" />
                             <TextBlock FontSize="12" Opacity="0.6" TextWrapping="Wrap"
                                        IsVisible="{Binding !IsAutomaticUpdateSupported}"
                                        Text="{l10n:Tr AutomaticUpdatePublishedOnly}" />

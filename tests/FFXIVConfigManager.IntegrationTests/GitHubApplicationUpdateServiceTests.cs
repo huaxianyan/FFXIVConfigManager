@@ -17,6 +17,23 @@ public sealed class GitHubApplicationUpdateServiceTests : IDisposable
         $"FFXIVConfigManager-update-service-{Guid.NewGuid():N}");
 
     [Fact]
+    public void UpdateProxy_EnableAndDisableChangesUpdateRequestRoute()
+    {
+        var proxy = new ConfigurableApplicationUpdateProxy();
+        var destination = new Uri("https://github.com/releases/latest");
+
+        proxy.Configure("socks5://127.0.0.1:7890");
+
+        Assert.False(proxy.IsBypassed(destination));
+        Assert.Equal(new Uri("socks5://127.0.0.1:7890/"), proxy.GetProxy(destination));
+
+        proxy.Configure(null);
+
+        Assert.True(proxy.IsBypassed(destination));
+        Assert.Equal(destination, proxy.GetProxy(destination));
+    }
+
+    [Fact]
     public async Task CheckAsync_NewerReleaseReportsAvailable()
     {
         using var client = CreateClient(CreatePackage(), checksumOverride: null);

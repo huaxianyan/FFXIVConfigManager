@@ -1,3 +1,4 @@
+using FFXIVConfigManager.Application.Updates;
 using FFXIVConfigManager.Domain.Characters;
 using FFXIVConfigManager.Domain.Profiles;
 
@@ -67,6 +68,26 @@ public sealed class SettingsService(ISettingsStore settingsStore)
                 ShowOnlyTaggedCharacters = showOnlyTaggedCharacters,
             },
             cancellationToken);
+
+    public Task SetUpdateProxyEnabledAsync(
+        bool enabled,
+        CancellationToken cancellationToken = default) =>
+        UpdateAsync(
+            settings => settings with { IsUpdateProxyEnabled = enabled },
+            cancellationToken);
+
+    public async Task<string> SetUpdateProxyEndpointAsync(
+        string scheme,
+        string host,
+        int port,
+        CancellationToken cancellationToken = default)
+    {
+        var address = UpdateProxyEndpoint.Create(scheme, host, port).Address;
+        await UpdateAsync(
+            settings => settings with { UpdateProxyAddress = address },
+            cancellationToken);
+        return address;
+    }
 
     public Task SetSnapshotLibraryPathAsync(
         string libraryPath,

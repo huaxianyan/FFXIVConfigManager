@@ -31,6 +31,8 @@ public partial class MainViewModel(
     IPortraitBackupEditDialogService portraitBackupEditDialog,
     ISettingsBackupDialogService settingsBackupDialog,
     IApplicationUpdateService applicationUpdateService,
+    IApplicationUpdateProxy applicationUpdateProxy,
+    IUpdateProxyDialogService updateProxyDialog,
     IApplicationUpdateInstaller applicationUpdateInstaller,
     IFolderPickerService folderPicker,
     ITextLocalizer text) : ViewModelBase
@@ -43,7 +45,9 @@ public partial class MainViewModel(
     private CharacterRowViewModel? _previewedMigrationSource;
     private CharacterRowViewModel? _previewedMigrationTarget;
     private ConfigScope _previewedMigrationScopes;
+    private string? _updateProxyAddress;
     private bool _isApplyingSettings;
+    private bool _isApplyingUpdateProxySettings;
     private bool _migrationScopeHandlersRegistered;
 
     public ObservableCollection<CharacterRowViewModel> Characters { get; } = [];
@@ -184,6 +188,7 @@ public partial class MainViewModel(
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
     [NotifyCanExecuteChangedFor(nameof(InstallUpdateCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenUpdateProxySettingsCommand))]
     public partial bool IsUpdateBusy { get; private set; }
 
     [ObservableProperty]
@@ -197,6 +202,13 @@ public partial class MainViewModel(
     public partial bool IsUpdateAvailable { get; private set; }
 
     public bool IsAutomaticUpdateSupported => applicationUpdateInstaller.IsSupported;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(OpenUpdateProxySettingsCommand))]
+    public partial bool IsUpdateProxyEnabled { get; set; }
+
+    [ObservableProperty]
+    public partial string UpdateProxyStatusText { get; private set; } = text["UpdateProxyDisabled"];
 
     [ObservableProperty]
     public partial string SnapshotFilter { get; set; } = string.Empty;
@@ -257,6 +269,11 @@ public partial class MainViewModel(
         {
             var settings = await settingsService.GetAsync(cancellationToken);
             SnapshotLibraryPath = settings.SnapshotLibraryPath ?? text["BackupLibraryNotSet"];
+            _updateProxyAddress = settings.UpdateProxyAddress;
+            _isApplyingUpdateProxySettings = true;
+            IsUpdateProxyEnabled = settings.IsUpdateProxyEnabled;
+            _isApplyingUpdateProxySettings = false;
+            ApplyUpdateProxy();
             _isApplyingSettings = true;
             ShowOnlyTaggedCharacters = settings.ShowOnlyTaggedCharacters;
             _isApplyingSettings = false;
@@ -851,6 +868,37 @@ public partial class MainViewModel(
 
     private bool CanManagePortraits() => !IsBusy;
 
+    [RelayCommand(CanExecute = nameof(CanOpenUpdateProxySettings))]
+    private async Task OpenUpdateProxySettingsAsync(CancellationToken cancellationToken)
+    {
+        var result = await updateProxyDialog.ShowAsync(_updateProxyAddress, cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var endpoint = UpdateProxyEndpoint.Parse(result.Address);
+            _updateProxyAddress = await settingsService.SetUpdateProxyEndpointAsync(
+                endpoint.Scheme,
+                endpoint.Host,
+                endpoint.Port,
+                cancellationToken);
+            ApplyUpdateProxy();
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception exception)
+        {
+            UpdateProxyStatusText = text.Format(
+                "SaveUpdateProxyFailedFormat",
+                exception.Message);
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanCheckForUpdates))]
     public async Task CheckForUpdatesAsync(CancellationToken cancellationToken = default)
     {
@@ -965,6 +1013,8 @@ public partial class MainViewModel(
     private string FormatDownloadSize(long bytes) => bytes < 1_000_000
         ? text.Format("DownloadSizeKilobytesFormat", bytes / 1_000d)
         : text.Format("DownloadSizeMegabytesFormat", bytes / 1_000_000d);
+
+    private bool CanOpenUpdateProxySettings() => IsUpdateProxyEnabled && !IsUpdateBusy;
 
     private bool CanCheckForUpdates() => !IsUpdateBusy;
 
@@ -1173,6 +1223,48 @@ public partial class MainViewModel(
     }
 
     partial void OnSnapshotFilterChanged(string value) => ApplySnapshotFilter();
+
+    partial void OnIsUpdateProxyEnabledChanged(bool oldValue, bool newValue)
+    {
+        if (_isApplyingUpdateProxySettings)
+        {
+            return;
+        }
+
+        ApplyUpdateProxy();
+        _ = SaveUpdateProxyEnabledAsync(oldValue, newValue);
+    }
+
+    private async Task SaveUpdateProxyEnabledAsync(bool oldValue, bool newValue)
+    {
+        try
+        {
+            await settingsService.SetUpdateProxyEnabledAsync(newValue);
+        }
+        catch (Exception exception)
+        {
+            _isApplyingUpdateProxySettings = true;
+            IsUpdateProxyEnabled = oldValue;
+            _isApplyingUpdateProxySettings = false;
+            ApplyUpdateProxy();
+            UpdateProxyStatusText = text.Format(
+                "SaveUpdateProxyFailedFormat",
+                exception.Message);
+        }
+    }
+
+    private void ApplyUpdateProxy()
+    {
+        applicationUpdateProxy.Configure(
+            IsUpdateProxyEnabled ? _updateProxyAddress : null);
+        UpdateProxyStatusText = (IsUpdateProxyEnabled, _updateProxyAddress) switch
+        {
+            (true, not null) => text.Format("UpdateProxyEnabledFormat", _updateProxyAddress),
+            (true, null) => text["UpdateProxyNeedsSettings"],
+            (false, not null) => text.Format("UpdateProxyDisabledWithSavedFormat", _updateProxyAddress),
+            _ => text["UpdateProxyDisabled"],
+        };
+    }
 
     partial void OnShowOnlyTaggedCharactersChanged(bool value)
     {

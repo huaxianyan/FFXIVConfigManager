@@ -77,6 +77,7 @@ FFXIVConfigManager.exe
 
 - 可备份和恢复角色标记、自定义配置源等软件设置。
 - 启动时或按需检查 GitHub Release。
+- 可为软件更新配置 HTTP、HTTPS、SOCKS4、SOCKS4A 或 SOCKS5 本地代理。
 - 下载完成后校验更新包并自动替换、重启。
 - 更新失败时保留或恢复旧版本。
 - 支持任意可写的便携目录，不依赖安装器或注册表。

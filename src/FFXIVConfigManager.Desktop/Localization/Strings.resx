@@ -579,6 +579,69 @@
   <data name="ApplyingUpdate" xml:space="preserve">
     <value>更新包已校验，应用即将关闭、完成替换并自动重启。</value>
   </data>
+  <data name="EnableUpdateProxy" xml:space="preserve">
+    <value>使用代理检查和下载更新</value>
+  </data>
+  <data name="ConfigureUpdateProxy" xml:space="preserve">
+    <value>设置代理</value>
+  </data>
+  <data name="UpdateProxySettingsTitle" xml:space="preserve">
+    <value>设置软件更新代理</value>
+  </data>
+  <data name="UpdateProxySettingsDescription" xml:space="preserve">
+    <value>选择本地代理协议，并填写代理软件监听的 IP 和端口。</value>
+  </data>
+  <data name="UpdateProxyProtocol" xml:space="preserve">
+    <value>协议</value>
+  </data>
+  <data name="UpdateProxyIpAddress" xml:space="preserve">
+    <value>IP</value>
+  </data>
+  <data name="UpdateProxyPort" xml:space="preserve">
+    <value>端口</value>
+  </data>
+  <data name="UpdateProxyDialogHint" xml:space="preserve">
+    <value>支持 HTTP、HTTPS、SOCKS4、SOCKS4A 和 SOCKS5。IP 只能填写 localhost、IPv4 回环地址或 IPv6 回环地址。</value>
+  </data>
+  <data name="TestUpdateProxy" xml:space="preserve">
+    <value>测试代理</value>
+  </data>
+  <data name="SaveUpdateProxy" xml:space="preserve">
+    <value>保存设置</value>
+  </data>
+  <data name="UpdateProxyTestNotRun" xml:space="preserve">
+    <value>保存前可以测试代理能否连接 GitHub。</value>
+  </data>
+  <data name="TestingUpdateProxy" xml:space="preserve">
+    <value>正在通过该代理连接 GitHub……</value>
+  </data>
+  <data name="UpdateProxyTestSucceededFormat" xml:space="preserve">
+    <value>代理可用，连接 GitHub 用时 {0:N0} ms。</value>
+  </data>
+  <data name="UpdateProxyTestCanceled" xml:space="preserve">
+    <value>代理测试已取消。</value>
+  </data>
+  <data name="UpdateProxyTestFailedFormat" xml:space="preserve">
+    <value>代理不可用：{0}</value>
+  </data>
+  <data name="UpdateProxyInputInvalidFormat" xml:space="preserve">
+    <value>代理设置不完整：{0}</value>
+  </data>
+  <data name="UpdateProxyDisabled" xml:space="preserve">
+    <value>软件更新当前使用直接连接。</value>
+  </data>
+  <data name="UpdateProxyDisabledWithSavedFormat" xml:space="preserve">
+    <value>软件更新当前使用直接连接，已保留代理「{0}」。</value>
+  </data>
+  <data name="UpdateProxyNeedsSettings" xml:space="preserve">
+    <value>代理已开启，请点击「设置代理」填写连接信息。</value>
+  </data>
+  <data name="UpdateProxyEnabledFormat" xml:space="preserve">
+    <value>软件更新当前使用代理「{0}」。</value>
+  </data>
+  <data name="SaveUpdateProxyFailedFormat" xml:space="preserve">
+    <value>代理设置未保存：{0}</value>
+  </data>
   <data name="AutomaticUpdatePublishedOnly" xml:space="preserve">
     <value>自动安装只支持 Windows 单文件发布版。当前开发版本只能检查更新。</value>
   </data>
