@@ -6,7 +6,7 @@ using FFXIVConfigManager.Domain.Snapshots;
 namespace FFXIVConfigManager.Application.Snapshots;
 
 public sealed record CompletedCharacterMigration(
-    CreatedSnapshot TargetRecoveryPoint,
+    CreatedSnapshot? TargetRecoveryPoint,
     CreatedSnapshot SourceSnapshot,
     SnapshotRestoreResult RestoreResult);
 
@@ -30,6 +30,7 @@ public sealed class MigrateCharacterConfigurationUseCase(
         CharacterConfiguration target,
         string libraryRoot,
         ConfigScope scopes = DefaultScopes,
+        bool createRecoveryPoint = true,
         CancellationToken cancellationToken = default)
     {
         if (!source.BelongsTo(sourceProfile))
@@ -52,12 +53,17 @@ public sealed class MigrateCharacterConfigurationUseCase(
             throw new ArgumentException("至少选择一个迁移范围。", nameof(scopes));
         }
 
-        var recoveryPoint = await createSnapshot.ExecuteAllKnownAsync(
-            targetProfile,
-            target,
-            libraryRoot,
-            SnapshotReason.BeforeMigration,
-            cancellationToken);
+        CreatedSnapshot? recoveryPoint = null;
+        if (createRecoveryPoint)
+        {
+            recoveryPoint = await createSnapshot.ExecuteAllKnownAsync(
+                targetProfile,
+                target,
+                libraryRoot,
+                SnapshotReason.BeforeMigration,
+                cancellationToken);
+        }
+
         var sourceSnapshot = await createSnapshot.ExecuteMigrationSourceAsync(
             sourceProfile,
             source,

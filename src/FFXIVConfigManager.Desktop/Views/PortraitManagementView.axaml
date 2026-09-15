@@ -48,7 +48,7 @@
         <Grid Grid.Row="1" ColumnDefinitions="*,210,*" ColumnSpacing="14">
             <Border Padding="14" CornerRadius="10" BorderThickness="1"
                     BorderBrush="#40808080" Background="#0A808080">
-                <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="10">
                     <TextBlock FontSize="17" FontWeight="SemiBold" Text="{Binding LeftPanelTitle}" />
                     <ComboBox Grid.Row="1" ItemsSource="{Binding Sources}"
                               SelectedItem="{Binding SelectedLeftSource}">
@@ -58,14 +58,16 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8"
+                    <CheckBox Grid.Row="2" IsChecked="{Binding ShowAutomaticBackups}"
+                              Content="{l10n:Tr ShowAutomaticRecoveryPoints}" />
+                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="8"
                           IsVisible="{Binding IsLeftBackupArea}">
                         <TextBox Text="{Binding LeftSearchText}"
                                  PlaceholderText="{l10n:Tr SearchPortraitSchemes}" />
                         <Button Grid.Column="1" Command="{Binding DeleteLeftBackupCommand}"
                                 Content="{Binding LeftDeleteButtonText}" />
                     </Grid>
-                    <ListBox Grid.Row="3" ItemsSource="{Binding LeftItems}"
+                    <ListBox Grid.Row="4" ItemsSource="{Binding LeftItems}"
                              SelectedItem="{Binding SelectedLeftItem}">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:PortraitListItemViewModel">
@@ -146,7 +148,7 @@
 
             <Border Grid.Column="2" Padding="14" CornerRadius="10" BorderThickness="1"
                     BorderBrush="#40808080" Background="#0A808080">
-                <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="10">
                     <TextBlock FontSize="17" FontWeight="SemiBold" Text="{Binding RightPanelTitle}" />
                     <ComboBox Grid.Row="1" ItemsSource="{Binding Sources}"
                               SelectedItem="{Binding SelectedRightSource}">
@@ -156,14 +158,16 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8"
+                    <CheckBox Grid.Row="2" IsChecked="{Binding ShowAutomaticBackups}"
+                              Content="{l10n:Tr ShowAutomaticRecoveryPoints}" />
+                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="8"
                           IsVisible="{Binding IsRightBackupArea}">
                         <TextBox Text="{Binding RightSearchText}"
                                  PlaceholderText="{l10n:Tr SearchPortraitSchemes}" />
                         <Button Grid.Column="1" Command="{Binding DeleteRightBackupCommand}"
                                 Content="{Binding RightDeleteButtonText}" />
                     </Grid>
-                    <ListBox Grid.Row="3" ItemsSource="{Binding RightItems}"
+                    <ListBox Grid.Row="4" ItemsSource="{Binding RightItems}"
                              SelectedItem="{Binding SelectedRightItem}">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:PortraitListItemViewModel">

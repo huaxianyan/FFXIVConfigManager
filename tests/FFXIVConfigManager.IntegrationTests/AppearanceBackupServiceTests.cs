@@ -60,6 +60,34 @@ public sealed class AppearanceBackupServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RestoreAsync_DisabledRecoveryPointOverwritesWithoutCreatingBackup()
+    {
+        var configRoot = Path.Combine(_root, "config");
+        var libraryRoot = Path.Combine(_root, "library");
+        Directory.CreateDirectory(configRoot);
+        var source = Path.Combine(configRoot, "FFXIV_CHARA_01.dat");
+        var target = Path.Combine(configRoot, "FFXIV_CHARA_12.dat");
+        var sourceData = CreateData(AppearanceRace.Viera, 15, AppearanceGender.Female, "新数据");
+        await File.WriteAllBytesAsync(source, sourceData);
+        await File.WriteAllBytesAsync(
+            target,
+            CreateData(AppearanceRace.Hyur, 1, AppearanceGender.Male, "原数据"));
+        var service = new ZipAppearanceBackupService();
+        var backup = await service.CreateBackupAsync(source, libraryRoot);
+
+        var result = await service.RestoreAsync(
+            backup,
+            configRoot,
+            12,
+            libraryRoot,
+            createRecoveryPoint: false);
+
+        Assert.Equal(sourceData, await File.ReadAllBytesAsync(target));
+        Assert.Null(result.RecoveryPoint);
+        Assert.Single(await service.ScanBackupsAsync(libraryRoot));
+    }
+
+    [Fact]
     public async Task RestoreAsync_FailureAfterReplacementRollsBackEmptySlot()
     {
         var configRoot = Path.Combine(_root, "config");

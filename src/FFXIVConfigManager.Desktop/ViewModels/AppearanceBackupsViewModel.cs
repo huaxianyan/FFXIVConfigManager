@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FFXIVConfigManager.Application.Appearances;
+using FFXIVConfigManager.Application.Backups;
+using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Desktop.Localization;
 using FFXIVConfigManager.Domain.Appearances;
 using FFXIVConfigManager.Domain.Profiles;
@@ -13,6 +15,7 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
     private readonly IAppearanceBackupService _service;
     private readonly string _libraryRoot;
     private readonly ITextLocalizer _text;
+    private readonly bool _createRecoveryPoint;
     private readonly Dictionary<Guid, IReadOnlyList<AppearanceSlot>> _profileSlots = [];
     private readonly List<AppearanceListItemViewModel> _allRightItems = [];
     private int _leftLoadVersion;
@@ -22,10 +25,12 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
         IReadOnlyList<GameProfile> profiles,
         string libraryRoot,
         IAppearanceBackupService service,
+        AutomaticBackupPolicy policy,
         ITextLocalizer text)
     {
         _service = service;
         _libraryRoot = libraryRoot;
+        _createRecoveryPoint = policy.BeforeAppearanceRestore.Enabled;
         _text = text;
         Profiles = profiles.Select(AppearanceProfileOptionViewModel.From).ToArray();
         RightSources =
@@ -107,6 +112,17 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsBackupOperation))]
     [NotifyCanExecuteChangedFor(nameof(ExecuteOperationCommand))]
     public partial bool IsDirectionReversed { get; private set; }
+
+    [ObservableProperty]
+    public partial bool ShowAutomaticBackups { get; set; }
+
+    partial void OnShowAutomaticBackupsChanged(bool value)
+    {
+        if (IsRightBackupArea)
+        {
+            ApplyRightFilters();
+        }
+    }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ExecuteOperationCommand))]
@@ -270,7 +286,9 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
             target?.IsOccupied == true && !IsOverwriteArmed)
         {
             IsOverwriteArmed = true;
-            StatusMessage = _text["OverwriteAppearanceWarning"];
+            StatusMessage = _createRecoveryPoint
+                ? _text["OverwriteAppearanceWarning"]
+                : _text["OverwriteAppearanceWarningNoRecovery"];
             return;
         }
 
@@ -329,6 +347,7 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
             targetProfile.ConfigRoot,
             target.SlotNumber,
             _libraryRoot,
+            _createRecoveryPoint,
             cancellationToken);
         Changed = true;
         _profileSlots.Remove(targetProfile.Id);
@@ -353,6 +372,7 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
             targetProfile.Profile.ConfigRoot,
             target.SlotNumber,
             _libraryRoot,
+            _createRecoveryPoint,
             cancellationToken);
         Changed = true;
         _profileSlots.Remove(targetProfile.Profile.Id);
@@ -522,7 +542,10 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
         {
             var race = SelectedRaceFilter?.Race;
             var gender = SelectedGenderFilter?.Gender;
-            matches = _allRightItems.Where(item =>
+            matches = _allRightItems
+                .Where(item => ShowAutomaticBackups ||
+                               item.Backup!.Entry.Rule == BackupRule.Manual)
+                .Where(item =>
                     AppearanceBackupFilter.Matches(
                         item.Backup?.Entry.Manifest?.Appearance,
                         race,
@@ -599,8 +622,11 @@ public sealed partial class AppearanceBackupsViewModel : ViewModelBase
 
 public sealed record AppearanceProfileOptionViewModel(GameProfile Profile, string DisplayName)
 {
+    /// <summary>下拉里只显示名称，完整目录放在悬停提示里。</summary>
+    public string ConfigRoot => Profile.ConfigRoot;
+
     public static AppearanceProfileOptionViewModel From(GameProfile profile) =>
-        new(profile, $"{profile.Name} · {profile.ConfigRoot}");
+        new(profile, profile.Name);
 }
 
 public sealed record AppearanceRightSourceOptionViewModel(
@@ -608,6 +634,9 @@ public sealed record AppearanceRightSourceOptionViewModel(
     string DisplayName)
 {
     public bool IsBackupArea => Profile is null;
+
+    /// <summary>备份区没有对应的配置源目录，留空即可。</summary>
+    public string ConfigRoot => Profile?.ConfigRoot ?? string.Empty;
 }
 
 public sealed record AppearanceRaceFilterViewModel(AppearanceRace? Race, string DisplayName);

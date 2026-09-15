@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FFXIVConfigManager.Application.Backups;
+using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
 using FFXIVConfigManager.Desktop.Localization;
 using FFXIVConfigManager.Desktop.Services;
@@ -16,7 +18,11 @@ public sealed partial class CharacterBackupsViewModel : ViewModelBase
     private readonly PreviewSnapshotUseCase _previewSnapshot;
     private readonly RestoreSnapshotUseCase _restoreSnapshot;
     private readonly ISnapshotArchiveService _archiveService;
+    private readonly ScanSnapshotLibraryUseCase _scanSnapshotLibrary;
+    private readonly PruneAutomaticBackupsUseCase _pruneAutomaticBackups;
+    private readonly AutomaticBackupPolicy _policy;
     private readonly ITextLocalizer _text;
+    private readonly string _manualLayerHint;
     private SnapshotLibraryEntry? _previewedBackup;
     private GameProfile? _previewedTargetProfile;
     private bool _restoreCompleted;
@@ -26,29 +32,50 @@ public sealed partial class CharacterBackupsViewModel : ViewModelBase
         PreviewSnapshotUseCase previewSnapshot,
         RestoreSnapshotUseCase restoreSnapshot,
         ISnapshotArchiveService archiveService,
+        ScanSnapshotLibraryUseCase scanSnapshotLibrary,
+        PruneAutomaticBackupsUseCase pruneAutomaticBackups,
+        AutomaticBackupPolicy policy,
+        BackupRetentionSetting manualCleanup,
         ITextLocalizer text)
     {
         _context = context;
         _previewSnapshot = previewSnapshot;
         _restoreSnapshot = restoreSnapshot;
         _archiveService = archiveService;
+        _scanSnapshotLibrary = scanSnapshotLibrary;
+        _pruneAutomaticBackups = pruneAutomaticBackups;
+        _policy = policy;
         _text = text;
-        Backups = new ObservableCollection<BackupOptionViewModel>(
-            context.Backups.Select(entry => BackupOptionViewModel.From(entry, text)));
+        ManualBackups = new ObservableCollection<BackupOptionViewModel>(
+            context.Backups.Where(entry => !entry.Rule.IsAutomatic())
+                .Select(entry => BackupOptionViewModel.From(entry, text)));
+        AutomaticBackups = new ObservableCollection<BackupOptionViewModel>(
+            context.Backups.Where(entry => entry.Rule.IsAutomatic())
+                .Select(entry => BackupOptionViewModel.From(entry, text)));
         TargetProfiles = context.AvailableProfiles
             .Select(GameProfileOptionViewModel.From)
             .ToArray();
         Title = text.Format("BackupManagerTitleFormat", context.CharacterName);
         CharacterName = context.CharacterName;
-        StatusMessage = text["BackupNotSelected"];
+        ManualTabTitle = text.Format("ManualBackupsTabFormat", ManualBackups.Count);
+        AutomaticTabTitle = text.Format("AutomaticBackupsTabFormat", AutomaticBackups.Count);
+        _manualLayerHint = manualCleanup.Enabled
+            ? text.Format("ManualLayerHintFormat", manualCleanup.EffectiveRetentionCount)
+            : text["BackupNotSelected"];
 
         var initialProfile = context.TargetProfile is null
             ? TargetProfiles.Count == 1 ? TargetProfiles[0] : null
             : TargetProfiles.FirstOrDefault(item => item.Profile.Id == context.TargetProfile.Id);
         SelectedTargetProfile = initialProfile;
+        ApplyLayerFilter();
+        StatusMessage = EmptySelectionMessage;
     }
 
-    public ObservableCollection<BackupOptionViewModel> Backups { get; }
+    public ObservableCollection<BackupOptionViewModel> ManualBackups { get; }
+
+    public ObservableCollection<BackupOptionViewModel> AutomaticBackups { get; }
+
+    public ObservableCollection<BackupOptionViewModel> VisibleBackups { get; } = [];
 
     public ObservableCollection<SnapshotFilePreviewViewModel> PreviewFiles { get; } = [];
 
@@ -58,6 +85,12 @@ public sealed partial class CharacterBackupsViewModel : ViewModelBase
 
     public string CharacterName { get; }
 
+    [ObservableProperty]
+    public partial string ManualTabTitle { get; private set; }
+
+    [ObservableProperty]
+    public partial string AutomaticTabTitle { get; private set; }
+
     public bool CanSelectTargetProfile => _context.TargetCharacter is null;
 
     public bool Changed { get; private set; }
@@ -66,11 +99,16 @@ public sealed partial class CharacterBackupsViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(PreviewCommand))]
     [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
+    [NotifyPropertyChangedFor(nameof(IsDeleteAvailable))]
+    [NotifyPropertyChangedFor(nameof(SelectedBackupDetails))]
     public partial BackupOptionViewModel? SelectedBackup { get; set; }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
     public partial GameProfileOptionViewModel? SelectedTargetProfile { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsShowingAutomatic { get; set; }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(PreviewCommand))]
@@ -89,10 +127,40 @@ public sealed partial class CharacterBackupsViewModel : ViewModelBase
         ? _text["ConfirmDeleteSelectedBackup"]
         : _text["DeleteSelectedBackup"];
 
+    public bool IsDeleteAvailable =>
+        SelectedBackup is not null && !SelectedBackup.Entry.Rule.IsAutomatic();
+
+    public string SelectedBackupDetails =>
+        SelectedBackup?.Details.Length > 0 ? SelectedBackup.Details : string.Empty;
+
+    private bool CreateRecoveryPoint => _policy.BeforeCharacterRestore.Enabled;
+
+    /// <summary>没有选中条目时按当前页签给出对应说明：自动页签解释清理机制，手动页签在开启清理时给出提醒。</summary>
+    private string EmptySelectionMessage => IsShowingAutomatic
+        ? _text.Format("AutomaticLayerHintFormat", AutomaticBackups.Count)
+        : _manualLayerHint;
+
     partial void OnSelectedBackupChanged(BackupOptionViewModel? value) => ResetPreview(value);
 
     partial void OnSelectedTargetProfileChanged(GameProfileOptionViewModel? value) =>
         ResetPreview(SelectedBackup);
+
+    partial void OnIsShowingAutomaticChanged(bool value)
+    {
+        SelectedBackup = null;
+        ApplyLayerFilter();
+        StatusMessage = EmptySelectionMessage;
+    }
+
+    private void ApplyLayerFilter()
+    {
+        VisibleBackups.Clear();
+        var source = IsShowingAutomatic ? AutomaticBackups : ManualBackups;
+        foreach (var item in source)
+        {
+            VisibleBackups.Add(item);
+        }
+    }
 
     [RelayCommand(CanExecute = nameof(CanPreview))]
     private async Task PreviewAsync(CancellationToken cancellationToken)
@@ -146,18 +214,31 @@ public sealed partial class CharacterBackupsViewModel : ViewModelBase
                 target.Profile!,
                 target.Character!,
                 _context.LibraryRoot,
+                CreateRecoveryPoint,
                 cancellationToken);
             Changed = true;
             _restoreCompleted = true;
-            StatusMessage = result.RecoveryPoint is null
+            var message = result.RecoveryPoint is not null
                 ? _text.Format(
-                    "RestoreCreatedCharacterFormat",
-                    result.RestoreResult.RestoredFileCount,
-                    target.Character!.FolderName.Value)
-                : _text.Format(
                     "RestoreSucceededFormat",
                     result.RestoreResult.RestoredFileCount,
-                    Path.GetFileName(result.RecoveryPoint.ArchivePath));
+                    Path.GetFileName(result.RecoveryPoint.ArchivePath))
+                : result.CreatedTargetDirectory
+                    ? _text.Format(
+                        "RestoreCreatedCharacterFormat",
+                        result.RestoreResult.RestoredFileCount,
+                        target.Character!.FolderName.Value)
+                    : _text.Format(
+                        "RestoreSucceededNoRecoveryFormat",
+                        result.RestoreResult.RestoredFileCount);
+
+            if (result.RecoveryPoint is not null)
+            {
+                await ReloadAutomaticBackupsAsync(cancellationToken);
+            }
+
+            // 重建自动列表会清掉选中状态并改写提示，成功文案放在最后设置。
+            StatusMessage = message;
         }
         catch (OperationCanceledException)
         {
@@ -189,9 +270,13 @@ public sealed partial class CharacterBackupsViewModel : ViewModelBase
         {
             var selected = SelectedBackup!;
             await _archiveService.DeleteAsync(selected.Entry.ArchivePath, cancellationToken);
-            Backups.Remove(selected);
+            ManualBackups.Remove(selected);
+            AutomaticBackups.Remove(selected);
+            VisibleBackups.Remove(selected);
             SelectedBackup = null;
             Changed = true;
+            ManualTabTitle = _text.Format("ManualBackupsTabFormat", ManualBackups.Count);
+            AutomaticTabTitle = _text.Format("AutomaticBackupsTabFormat", AutomaticBackups.Count);
             StatusMessage = _text.Format(
                 "BackupDeletedFormat",
                 Path.GetFileName(selected.Entry.ArchivePath));
@@ -207,12 +292,46 @@ public sealed partial class CharacterBackupsViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 恢复时新建的恢复点不在窗口打开那一刻的快照列表里，重扫一次备份库让「自动恢复点」
+    /// 页签当下就能看到它，并顺带按保留数量清理，免得刚生成的恢复点要等主窗口下次刷新
+    /// 备份库才被淘汰。刷新只影响列表显示，失败时不改动恢复结果的提示。
+    /// </summary>
+    private async Task ReloadAutomaticBackupsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _pruneAutomaticBackups.ExecuteAsync(
+                _policy,
+                _context.LibraryRoot,
+                cancellationToken);
+            var entries = await _scanSnapshotLibrary.ExecuteAsync(
+                _context.LibraryRoot,
+                cancellationToken);
+            AutomaticBackups.Clear();
+            foreach (var entry in entries.Where(item => item.Rule.IsAutomatic()))
+            {
+                AutomaticBackups.Add(BackupOptionViewModel.From(entry, _text));
+            }
+
+            AutomaticTabTitle = _text.Format("AutomaticBackupsTabFormat", AutomaticBackups.Count);
+            if (IsShowingAutomatic)
+            {
+                ApplyLayerFilter();
+            }
+        }
+        catch (Exception)
+        {
+            // 刷新属于尽力而为：失败时保留原有列表，恢复成功的提示照旧。
+        }
+    }
+
     private void ResetPreview(BackupOptionViewModel? selected)
     {
         ClearPreview();
         IsDeleteArmed = false;
         StatusMessage = selected is null
-            ? _text["BackupNotSelected"]
+            ? EmptySelectionMessage
             : !selected.IsValid
                 ? _text["BackupMustBeValid"]
                 : ResolveTarget(selected.Entry).Profile is null
@@ -271,13 +390,13 @@ public sealed partial class CharacterBackupsViewModel : ViewModelBase
                ReferenceEquals(_previewedTargetProfile, target.Profile);
     }
 
-    private bool CanDelete() => !IsBusy && SelectedBackup is not null;
+    private bool CanDelete() => !IsBusy && IsDeleteAvailable;
 }
 
 public sealed record GameProfileOptionViewModel(GameProfile Profile, string DisplayName)
 {
     public static GameProfileOptionViewModel From(GameProfile profile) =>
-        new(profile, $"{profile.Name} · {profile.ConfigRoot}");
+        new(profile, profile.Name);
 }
 
 public sealed record BackupOptionViewModel(
@@ -286,12 +405,29 @@ public sealed record BackupOptionViewModel(
     string Details,
     bool IsValid)
 {
+    public bool IsAutomatic => Entry.Rule.IsAutomatic();
+
     public static BackupOptionViewModel From(SnapshotLibraryEntry entry, ITextLocalizer text)
     {
         var createdAt = (entry.Manifest?.CreatedAtUtc ?? entry.ArchiveLastWriteTimeUtc)
             .ToLocalTime()
             .ToString("g");
-        var type = entry.Manifest?.Reason switch
+        var integrity = entry.IntegrityStatus == SnapshotIntegrityStatus.Valid
+            ? text["IntegrityValid"]
+            : text["IntegrityCorrupted"];
+        // 左侧列表本身已经按手动／自动分页，手动备份不必再重复标一遍「手动备份」。
+        var displayName = entry.Rule == BackupRule.Manual
+            ? text.Format("ManualBackupOptionFormat", createdAt, integrity)
+            : text.Format("BackupOptionFormat", createdAt, TypeText(entry, text), integrity);
+        return new BackupOptionViewModel(
+            entry,
+            displayName,
+            entry.Errors.Count == 0 ? string.Empty : string.Join("；", entry.Errors),
+            entry.IntegrityStatus == SnapshotIntegrityStatus.Valid);
+    }
+
+    private static string TypeText(SnapshotLibraryEntry entry, ITextLocalizer text) =>
+        entry.Manifest?.Reason switch
         {
             SnapshotReason.BeforeMigration => text["TypeBeforeMigration"],
             SnapshotReason.BeforeRestore => text["TypeBeforeRestore"],
@@ -299,13 +435,4 @@ public sealed record BackupOptionViewModel(
             SnapshotReason.Manual => text["TypeManual"],
             _ => text["TypeUnknown"],
         };
-        var integrity = entry.IntegrityStatus == SnapshotIntegrityStatus.Valid
-            ? text["IntegrityValid"]
-            : text["IntegrityCorrupted"];
-        return new BackupOptionViewModel(
-            entry,
-            text.Format("BackupOptionFormat", createdAt, type, integrity),
-            entry.Errors.Count == 0 ? string.Empty : string.Join("；", entry.Errors),
-            entry.IntegrityStatus == SnapshotIntegrityStatus.Valid);
-    }
 }

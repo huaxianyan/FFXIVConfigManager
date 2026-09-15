@@ -475,6 +475,80 @@
                     </Border>
                     <Border Classes="card">
                         <StackPanel Spacing="12">
+                            <TextBlock Classes="section-title" Text="{l10n:Tr AutomaticBackup}" />
+                            <TextBlock Opacity="0.65" TextWrapping="Wrap"
+                                       Text="{l10n:Tr AutomaticBackupDescription}" />
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                <CheckBox IsChecked="{Binding AutoBackupBeforeCharacterRestore, Mode=TwoWay}"
+                                          Content="{l10n:Tr AutomaticBackupBeforeCharacterRestore}" />
+                                <NumericUpDown Grid.Column="1" Width="110"
+                                               Minimum="1" Maximum="100" Increment="1"
+                                               IsEnabled="{Binding AutoBackupBeforeCharacterRestore}"
+                                               Value="{Binding AutoBackupBeforeCharacterRestoreRetention}" />
+                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Opacity="0.6"
+                                           Text="{l10n:Tr BackupRetentionUnit}" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                <CheckBox IsChecked="{Binding AutoBackupBeforeCharacterMigration, Mode=TwoWay}"
+                                          Content="{l10n:Tr AutomaticBackupBeforeCharacterMigration}" />
+                                <NumericUpDown Grid.Column="1" Width="110"
+                                               Minimum="1" Maximum="100" Increment="1"
+                                               IsEnabled="{Binding AutoBackupBeforeCharacterMigration}"
+                                               Value="{Binding AutoBackupBeforeCharacterMigrationRetention}" />
+                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Opacity="0.6"
+                                           Text="{l10n:Tr BackupRetentionUnit}" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                <CheckBox IsChecked="{Binding AutoBackupBeforeAppearanceRestore, Mode=TwoWay}"
+                                          Content="{l10n:Tr AutomaticBackupBeforeAppearanceRestore}" />
+                                <NumericUpDown Grid.Column="1" Width="110"
+                                               Minimum="1" Maximum="100" Increment="1"
+                                               IsEnabled="{Binding AutoBackupBeforeAppearanceRestore}"
+                                               Value="{Binding AutoBackupBeforeAppearanceRestoreRetention}" />
+                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Opacity="0.6"
+                                           Text="{l10n:Tr BackupRetentionUnit}" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                <CheckBox IsChecked="{Binding AutoBackupBeforePortraitTransfer, Mode=TwoWay}"
+                                          Content="{l10n:Tr AutomaticBackupBeforePortraitTransfer}" />
+                                <NumericUpDown Grid.Column="1" Width="110"
+                                               Minimum="1" Maximum="100" Increment="1"
+                                               IsEnabled="{Binding AutoBackupBeforePortraitTransfer}"
+                                               Value="{Binding AutoBackupBeforePortraitTransferRetention}" />
+                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Opacity="0.6"
+                                           Text="{l10n:Tr BackupRetentionUnit}" />
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Command="{Binding PruneNowCommand}"
+                                        Content="{l10n:Tr PruneAutomaticBackupsNow}" />
+                                <TextBlock VerticalAlignment="Center" FontSize="12" Opacity="0.6"
+                                           Text="{l10n:Tr AutomaticBackupPruneHint}" />
+                            </StackPanel>
+                            <TextBlock FontSize="12" Opacity="0.6" TextWrapping="Wrap"
+                                       Text="{l10n:Tr AutomaticBackupRollbackHint}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <StackPanel Spacing="12">
+                            <TextBlock Classes="section-title" Text="{l10n:Tr ManualBackupCleanup}" />
+                            <TextBlock Opacity="0.65" TextWrapping="Wrap"
+                                       Text="{l10n:Tr ManualBackupCleanupDescription}" />
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                <CheckBox IsChecked="{Binding ManualBackupCleanupEnabled, Mode=TwoWay}"
+                                          Content="{l10n:Tr ManualBackupCleanupToggle}" />
+                                <NumericUpDown Grid.Column="1" Width="110"
+                                               Minimum="1" Maximum="100" Increment="1"
+                                               IsEnabled="{Binding ManualBackupCleanupEnabled}"
+                                               Value="{Binding ManualBackupCleanupRetention}" />
+                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Opacity="0.6"
+                                           Text="{l10n:Tr BackupRetentionUnit}" />
+                            </Grid>
+                            <TextBlock FontSize="12" Opacity="0.6" TextWrapping="Wrap"
+                                       Text="{l10n:Tr ManualBackupCleanupHint}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <StackPanel Spacing="12">
                             <TextBlock Classes="section-title" Text="{l10n:Tr BackupStorage}" />
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                                 <TextBlock VerticalAlignment="Center" Opacity="0.65"

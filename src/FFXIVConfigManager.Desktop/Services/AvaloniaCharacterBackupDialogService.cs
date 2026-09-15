@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using FFXIVConfigManager.Application.Backups;
+using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
 using FFXIVConfigManager.Desktop.Localization;
 using FFXIVConfigManager.Desktop.ViewModels;
@@ -11,6 +13,9 @@ public sealed class AvaloniaCharacterBackupDialogService(
     PreviewSnapshotUseCase previewSnapshot,
     RestoreSnapshotUseCase restoreSnapshot,
     ISnapshotArchiveService archiveService,
+    ScanSnapshotLibraryUseCase scanSnapshotLibrary,
+    PruneAutomaticBackupsUseCase pruneAutomaticBackups,
+    SettingsService settingsService,
     ITextLocalizer text) : ICharacterBackupDialogService
 {
     public async Task<bool> ShowAsync(
@@ -24,11 +29,16 @@ public sealed class AvaloniaCharacterBackupDialogService(
             return false;
         }
 
+        var settings = await settingsService.GetAsync(cancellationToken);
         var viewModel = new CharacterBackupsViewModel(
             context,
             previewSnapshot,
             restoreSnapshot,
             archiveService,
+            scanSnapshotLibrary,
+            pruneAutomaticBackups,
+            settings.AutomaticBackups,
+            settings.ManualCharacterBackupCleanup,
             text);
         var window = new CharacterBackupsWindow
         {

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FFXIVConfigManager.Application.Appearances;
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Discovery;
 using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
@@ -30,6 +31,8 @@ public partial class MainViewModel(
     IPortraitManagementService portraitManagementService,
     IPortraitBackupEditDialogService portraitBackupEditDialog,
     ISettingsBackupDialogService settingsBackupDialog,
+    PruneAutomaticBackupsUseCase pruneAutomaticBackups,
+    PruneManualCharacterBackupsUseCase pruneManualCharacterBackups,
     IApplicationUpdateService applicationUpdateService,
     IApplicationUpdateProxy applicationUpdateProxy,
     IUpdateProxyDialogService updateProxyDialog,
@@ -217,6 +220,36 @@ public partial class MainViewModel(
     public partial bool ShowOnlyTaggedCharacters { get; set; }
 
     [ObservableProperty]
+    public partial bool AutoBackupBeforeCharacterRestore { get; set; }
+
+    [ObservableProperty]
+    public partial bool AutoBackupBeforeCharacterMigration { get; set; }
+
+    [ObservableProperty]
+    public partial bool AutoBackupBeforeAppearanceRestore { get; set; }
+
+    [ObservableProperty]
+    public partial bool AutoBackupBeforePortraitTransfer { get; set; }
+
+    [ObservableProperty]
+    public partial int AutoBackupBeforeCharacterRestoreRetention { get; set; }
+
+    [ObservableProperty]
+    public partial int AutoBackupBeforeCharacterMigrationRetention { get; set; }
+
+    [ObservableProperty]
+    public partial int AutoBackupBeforeAppearanceRestoreRetention { get; set; }
+
+    [ObservableProperty]
+    public partial int AutoBackupBeforePortraitTransferRetention { get; set; }
+
+    [ObservableProperty]
+    public partial bool ManualBackupCleanupEnabled { get; set; }
+
+    [ObservableProperty]
+    public partial int ManualBackupCleanupRetention { get; set; }
+
+    [ObservableProperty]
     public partial AppearanceBackupsViewModel? AppearanceManager { get; private set; }
 
     [ObservableProperty]
@@ -276,6 +309,21 @@ public partial class MainViewModel(
             ApplyUpdateProxy();
             _isApplyingSettings = true;
             ShowOnlyTaggedCharacters = settings.ShowOnlyTaggedCharacters;
+            AutoBackupBeforeCharacterRestore = settings.AutomaticBackups.BeforeCharacterRestore.Enabled;
+            AutoBackupBeforeCharacterMigration = settings.AutomaticBackups.BeforeCharacterMigration.Enabled;
+            AutoBackupBeforeAppearanceRestore = settings.AutomaticBackups.BeforeAppearanceRestore.Enabled;
+            AutoBackupBeforePortraitTransfer = settings.AutomaticBackups.BeforePortraitTransfer.Enabled;
+            AutoBackupBeforeCharacterRestoreRetention =
+                settings.AutomaticBackups.BeforeCharacterRestore.EffectiveRetentionCount;
+            AutoBackupBeforeCharacterMigrationRetention =
+                settings.AutomaticBackups.BeforeCharacterMigration.EffectiveRetentionCount;
+            AutoBackupBeforeAppearanceRestoreRetention =
+                settings.AutomaticBackups.BeforeAppearanceRestore.EffectiveRetentionCount;
+            AutoBackupBeforePortraitTransferRetention =
+                settings.AutomaticBackups.BeforePortraitTransfer.EffectiveRetentionCount;
+            ManualBackupCleanupEnabled = settings.ManualCharacterBackupCleanup.Enabled;
+            ManualBackupCleanupRetention =
+                settings.ManualCharacterBackupCleanup.EffectiveRetentionCount;
             _isApplyingSettings = false;
             var aliases = BuildAliasLookup(settings.CharacterAliases);
             var results = await scanProfiles.ExecuteAsync(cancellationToken);
@@ -559,6 +607,7 @@ public partial class MainViewModel(
             return;
         }
 
+        await PruneBackupsAsync(settings.SnapshotLibraryPath, cancellationToken);
         var entries = await scanSnapshotLibrary.ExecuteAsync(
             settings.SnapshotLibraryPath,
             cancellationToken);
@@ -626,6 +675,68 @@ public partial class MainViewModel(
                     null,
                     null,
                     unidentified)));
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunCommand))]
+    private async Task PruneNowAsync(CancellationToken cancellationToken)
+    {
+        var settings = await settingsService.GetAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(settings.SnapshotLibraryPath))
+        {
+            StatusMessage = text["BackupLibraryNotSet"];
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            await PruneBackupsAsync(settings.SnapshotLibraryPath, cancellationToken);
+            if (CurrentPage == NavigationPage.Backups)
+            {
+                await LoadSnapshotsAsync(settings, BuildAliasLookup(settings.CharacterAliases), cancellationToken);
+            }
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// 自动恢复点与手动备份各按自己的保留数量清理，结果合并成一条状态提示。
+    /// 手动备份清理默认为关闭状态，关闭时不会触发任何删除。
+    /// </summary>
+    private async Task PruneBackupsAsync(
+        string libraryRoot,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var automatic = await pruneAutomaticBackups.ExecuteAsync(
+                CreateAutomaticBackupPolicy(),
+                libraryRoot,
+                cancellationToken);
+            var manual = await pruneManualCharacterBackups.ExecuteAsync(
+                CreateManualBackupCleanupSetting(),
+                libraryRoot,
+                cancellationToken);
+            var result = BackupPruneResult.Merge(automatic, manual);
+            if (result.HasFailures)
+            {
+                StatusMessage = text.Format(
+                    "BackupPrunedWithFailuresFormat",
+                    result.DeletedCount,
+                    result.Failures.Count);
+            }
+            else if (result.HasChanges)
+            {
+                StatusMessage = text.Format("BackupPrunedFormat", result.DeletedCount);
+            }
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = text.Format("BackupPruneFailedFormat", exception.Message);
         }
     }
 
@@ -813,10 +924,12 @@ public partial class MainViewModel(
             return;
         }
 
+        var policy = (await settingsService.GetAsync(cancellationToken)).AutomaticBackups;
         var viewModel = new AppearanceBackupsViewModel(
             _currentProfiles.Values.OrderBy(profile => profile.Name).ToArray(),
             libraryRoot,
             appearanceBackupService,
+            policy,
             text);
         AppearanceManager = viewModel;
         await viewModel.InitializeAsync(cancellationToken);
@@ -856,11 +969,13 @@ public partial class MainViewModel(
                 $"{character.DisplayName} · {character.ProfileName}",
                 character.Character.FullPath))
             .ToArray();
+        var policy = (await settingsService.GetAsync(cancellationToken)).AutomaticBackups;
         var viewModel = new PortraitManagementViewModel(
             portraitManagementService,
             libraryRoot,
             characters,
             portraitBackupEditDialog,
+            policy,
             text);
         PortraitManager = viewModel;
         await viewModel.InitializeAsync(cancellationToken);
@@ -1128,11 +1243,16 @@ public partial class MainViewModel(
                 _previewedMigrationTarget.Character,
                 settings.SnapshotLibraryPath,
                 currentScopes,
+                settings.AutomaticBackups.BeforeCharacterMigration.Enabled,
                 cancellationToken);
-            completionMessage = text.Format(
-                "MigrationCompletedFormat",
-                result.RestoreResult.RestoredFileCount,
-                Path.GetFileName(result.TargetRecoveryPoint.ArchivePath));
+            completionMessage = result.TargetRecoveryPoint is null
+                ? text.Format(
+                    "MigrationCompletedNoRecoveryFormat",
+                    result.RestoreResult.RestoredFileCount)
+                : text.Format(
+                    "MigrationCompletedFormat",
+                    result.RestoreResult.RestoredFileCount,
+                    Path.GetFileName(result.TargetRecoveryPoint.ArchivePath));
             StatusMessage = completionMessage;
             ClearMigrationPreview();
         }
@@ -1294,6 +1414,90 @@ public partial class MainViewModel(
         catch (Exception exception)
         {
             StatusMessage = text.Format("SaveCharacterFilterFailedFormat", exception.Message);
+        }
+    }
+
+    partial void OnAutoBackupBeforeCharacterRestoreChanged(bool value) =>
+        _ = SaveAutomaticBackupPolicyAsync();
+
+    partial void OnAutoBackupBeforeCharacterMigrationChanged(bool value) =>
+        _ = SaveAutomaticBackupPolicyAsync();
+
+    partial void OnAutoBackupBeforeAppearanceRestoreChanged(bool value) =>
+        _ = SaveAutomaticBackupPolicyAsync();
+
+    partial void OnAutoBackupBeforePortraitTransferChanged(bool value) =>
+        _ = SaveAutomaticBackupPolicyAsync();
+
+    partial void OnAutoBackupBeforeCharacterRestoreRetentionChanged(int value) =>
+        _ = SaveAutomaticBackupPolicyAsync();
+
+    partial void OnAutoBackupBeforeCharacterMigrationRetentionChanged(int value) =>
+        _ = SaveAutomaticBackupPolicyAsync();
+
+    partial void OnAutoBackupBeforeAppearanceRestoreRetentionChanged(int value) =>
+        _ = SaveAutomaticBackupPolicyAsync();
+
+    partial void OnAutoBackupBeforePortraitTransferRetentionChanged(int value) =>
+        _ = SaveAutomaticBackupPolicyAsync();
+
+    partial void OnManualBackupCleanupEnabledChanged(bool value) =>
+        _ = SaveManualBackupCleanupAsync();
+
+    partial void OnManualBackupCleanupRetentionChanged(int value) =>
+        _ = SaveManualBackupCleanupAsync();
+
+    private AutomaticBackupPolicy CreateAutomaticBackupPolicy() => new()
+    {
+        BeforeCharacterRestore = new BackupRetentionSetting(
+            AutoBackupBeforeCharacterRestore,
+            AutoBackupBeforeCharacterRestoreRetention),
+        BeforeCharacterMigration = new BackupRetentionSetting(
+            AutoBackupBeforeCharacterMigration,
+            AutoBackupBeforeCharacterMigrationRetention),
+        BeforeAppearanceRestore = new BackupRetentionSetting(
+            AutoBackupBeforeAppearanceRestore,
+            AutoBackupBeforeAppearanceRestoreRetention),
+        BeforePortraitTransfer = new BackupRetentionSetting(
+            AutoBackupBeforePortraitTransfer,
+            AutoBackupBeforePortraitTransferRetention),
+    };
+
+    private BackupRetentionSetting CreateManualBackupCleanupSetting() =>
+        new(ManualBackupCleanupEnabled, ManualBackupCleanupRetention);
+
+    private async Task SaveManualBackupCleanupAsync()
+    {
+        if (_isApplyingSettings)
+        {
+            return;
+        }
+
+        try
+        {
+            await settingsService.SetManualCharacterBackupCleanupAsync(
+                CreateManualBackupCleanupSetting());
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = text.Format("SaveManualBackupCleanupFailedFormat", exception.Message);
+        }
+    }
+
+    private async Task SaveAutomaticBackupPolicyAsync()
+    {
+        if (_isApplyingSettings)
+        {
+            return;
+        }
+
+        try
+        {
+            await settingsService.SetAutomaticBackupPolicyAsync(CreateAutomaticBackupPolicy());
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = text.Format("SaveAutomaticBackupFailedFormat", exception.Message);
         }
     }
 

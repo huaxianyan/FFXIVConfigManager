@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FFXIVConfigManager.Application.Appearances;
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Domain.Appearances;
 
 namespace FFXIVConfigManager.Infrastructure.Appearances;
@@ -66,17 +67,14 @@ public sealed class ZipAppearanceBackupService(
         string libraryRoot,
         CancellationToken cancellationToken = default)
     {
-        var root = Path.Combine(Path.GetFullPath(libraryRoot), "appearance-backups");
-        if (!Directory.Exists(root))
-        {
-            return [];
-        }
-
         var entries = new List<AppearanceBackupEntry>();
-        foreach (var path in Directory.EnumerateFiles(root, $"*{ArchiveExtension}", SearchOption.AllDirectories))
+        foreach (var (path, category) in AutomaticBackupStorage.EnumerateArchives(
+                     libraryRoot,
+                     AutomaticBackupStorage.AppearanceBackupsDirectoryName,
+                     $"*{ArchiveExtension}"))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            entries.Add(await VerifyAsync(path, cancellationToken));
+            entries.Add(await VerifyAsync(path, category, cancellationToken));
         }
 
         return entries
@@ -88,6 +86,7 @@ public sealed class ZipAppearanceBackupService(
         string sourceFilePath,
         string libraryRoot,
         AppearanceBackupReason reason = AppearanceBackupReason.Manual,
+        BackupCategory? category = null,
         CancellationToken cancellationToken = default)
     {
         var sourcePath = Path.GetFullPath(sourceFilePath);
@@ -98,11 +97,17 @@ public sealed class ZipAppearanceBackupService(
             throw new InvalidDataException($"无法备份无效的角色形象文件：{error}");
         }
 
+        var resolvedCategory = category ??
+            (reason == AppearanceBackupReason.BeforeRestore
+                ? BackupCategory.Automatic
+                : BackupCategory.Manual);
         var now = DateTimeOffset.UtcNow;
         var backupId = Guid.NewGuid();
         var directory = Path.Combine(
-            Path.GetFullPath(libraryRoot),
-            "appearance-backups",
+            AutomaticBackupStorage.ResolveRoot(
+                libraryRoot,
+                AutomaticBackupStorage.AppearanceBackupsDirectoryName,
+                resolvedCategory),
             now.ToString("yyyy"),
             now.ToString("MM"));
         Directory.CreateDirectory(directory);
@@ -150,7 +155,7 @@ public sealed class ZipAppearanceBackupService(
                 await dataStream.WriteAsync(data, cancellationToken);
             }
 
-            var verification = await VerifyAsync(temporaryPath, cancellationToken);
+            var verification = await VerifyAsync(temporaryPath, resolvedCategory, cancellationToken);
             if (verification.Integrity != AppearanceBackupIntegrity.Valid)
             {
                 throw new InvalidDataException(
@@ -171,10 +176,14 @@ public sealed class ZipAppearanceBackupService(
         string targetConfigRoot,
         int targetSlot,
         string libraryRoot,
+        bool createRecoveryPoint = true,
         CancellationToken cancellationToken = default)
     {
         _ = AppearanceData.GetSlotFileName(targetSlot);
-        var verified = await VerifyAsync(backup.ArchivePath, cancellationToken);
+        var verified = await VerifyAsync(
+            backup.ArchivePath,
+            backup.Rule.ToPathCategory(),
+            cancellationToken);
         if (verified.Integrity != AppearanceBackupIntegrity.Valid || verified.Manifest is null)
         {
             throw new InvalidDataException(
@@ -191,13 +200,13 @@ public sealed class ZipAppearanceBackupService(
         await RecoverInterruptedRestoresAsync(root, cancellationToken);
         var targetPath = Path.Combine(root, AppearanceData.GetSlotFileName(targetSlot));
         AppearanceBackupEntry? recoveryPoint = null;
-        if (File.Exists(targetPath))
+        if (createRecoveryPoint && File.Exists(targetPath))
         {
             recoveryPoint = await CreateBackupAsync(
                 targetPath,
                 libraryRoot,
                 AppearanceBackupReason.BeforeRestore,
-                cancellationToken);
+                cancellationToken: cancellationToken);
         }
 
         var operationId = Guid.NewGuid();
@@ -285,6 +294,7 @@ public sealed class ZipAppearanceBackupService(
 
     private static async Task<AppearanceBackupEntry> VerifyAsync(
         string archivePath,
+        BackupCategory pathCategory,
         CancellationToken cancellationToken)
     {
         var path = Path.GetFullPath(archivePath);
@@ -362,7 +372,8 @@ public sealed class ZipAppearanceBackupService(
                 lastWriteTime,
                 AppearanceBackupIntegrity.Valid,
                 manifest,
-                []);
+                [],
+                BackupRules.ResolveAppearance(pathCategory, manifest.Reason));
         }
         catch (OperationCanceledException)
         {
@@ -376,7 +387,8 @@ public sealed class ZipAppearanceBackupService(
                 lastWriteTime,
                 AppearanceBackupIntegrity.Corrupted,
                 null,
-                [$"读取备份失败：{exception.Message}"]);
+                [$"读取备份失败：{exception.Message}"],
+                BackupRules.ResolveAppearance(pathCategory, reason: null));
         }
     }
 

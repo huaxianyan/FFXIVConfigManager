@@ -1,3 +1,4 @@
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Domain.Portraits;
 
 namespace FFXIVConfigManager.Application.Portraits;
@@ -22,7 +23,14 @@ public sealed record PortraitBackupEntry(
     PortraitBackupIntegrity Integrity,
     PortraitBackupManifest? Manifest,
     PortraitData? Data,
-    IReadOnlyList<string> Errors);
+    IReadOnlyList<string> Errors,
+    BackupRule Rule)
+{
+    public DateTimeOffset CreatedAtUtc =>
+        Manifest?.CreatedAtUtc ?? ArchiveLastWriteTimeUtc;
+
+    public bool IsAutomatic => Rule.IsAutomatic();
+}
 
 public sealed record PortraitTransferSource(
     CharacterPortrait? Character,
@@ -37,7 +45,7 @@ public sealed record PortraitTransferSource(
 
 public sealed record PortraitTransferResult(
     string TargetFilePath,
-    PortraitBackupEntry RecoveryPoint);
+    PortraitBackupEntry? RecoveryPoint);
 
 public interface IPortraitManagementService
 {
@@ -61,6 +69,7 @@ public interface IPortraitManagementService
         PortraitTransferSource source,
         CharacterPortrait target,
         string libraryRoot,
+        bool createRecoveryPoint = true,
         CancellationToken cancellationToken = default);
 
     Task<PortraitBackupEntry> UpdateBackupMetadataAsync(

@@ -1,3 +1,4 @@
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Domain.Characters;
 using FFXIVConfigManager.Domain.Files;
 using FFXIVConfigManager.Domain.Profiles;
@@ -99,7 +100,10 @@ public sealed class CreateCharacterSnapshotUseCase(
                 profile.Name,
                 character.FolderName.Value,
                 string.IsNullOrWhiteSpace(characterAlias) ? null : characterAlias.Trim()),
-            files);
+            files,
+            reason == SnapshotReason.Manual
+                ? BackupCategory.Manual
+                : BackupCategory.Automatic);
 
         return archiveService.CreateAsync(request, cancellationToken);
     }

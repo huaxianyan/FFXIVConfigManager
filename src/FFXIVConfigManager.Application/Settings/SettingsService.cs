@@ -1,3 +1,4 @@
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Updates;
 using FFXIVConfigManager.Domain.Characters;
 using FFXIVConfigManager.Domain.Profiles;
@@ -55,7 +56,83 @@ public sealed class SettingsService(ISettingsStore settingsStore)
                     ? backup.CustomProfiles
                     : current.CustomProfiles,
                 SnapshotLibraryPath = current.SnapshotLibraryPath,
+                AutomaticBackups = current.AutomaticBackups,
+                ManualCharacterBackupCleanup = current.ManualCharacterBackupCleanup,
             },
+            cancellationToken);
+    }
+
+    public Task SetAutomaticBackupPolicyAsync(
+        AutomaticBackupPolicy policy,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+
+        return UpdateAsync(
+            settings => settings with { AutomaticBackups = policy },
+            cancellationToken);
+    }
+
+    /// <summary>更新单个自动备份功能的保留数量。关闭的功能原值照常保存，重新开启后生效。</summary>
+    public Task SetAutomaticBackupRetentionAsync(
+        BackupRule rule,
+        int retentionCount,
+        CancellationToken cancellationToken = default)
+    {
+        if (retentionCount is < BackupRetentionSetting.MinimumRetentionCount or
+            > BackupRetentionSetting.MaximumRetentionCount)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(retentionCount),
+                retentionCount,
+                $"自动备份保留数量必须在 {BackupRetentionSetting.MinimumRetentionCount} 到 " +
+                $"{BackupRetentionSetting.MaximumRetentionCount} 之间。");
+        }
+
+        return UpdateAsync(
+            settings => settings with
+            {
+                AutomaticBackups = settings.AutomaticBackups with
+                {
+                    BeforeCharacterRestore = rule == BackupRule.CharacterRestore
+                        ? settings.AutomaticBackups.BeforeCharacterRestore with { RetentionCount = retentionCount }
+                        : settings.AutomaticBackups.BeforeCharacterRestore,
+                    BeforeCharacterMigration = rule == BackupRule.CharacterMigration
+                        ? settings.AutomaticBackups.BeforeCharacterMigration with { RetentionCount = retentionCount }
+                        : settings.AutomaticBackups.BeforeCharacterMigration,
+                    BeforeAppearanceRestore = rule == BackupRule.Appearance
+                        ? settings.AutomaticBackups.BeforeAppearanceRestore with { RetentionCount = retentionCount }
+                        : settings.AutomaticBackups.BeforeAppearanceRestore,
+                    BeforePortraitTransfer = rule == BackupRule.Portrait
+                        ? settings.AutomaticBackups.BeforePortraitTransfer with { RetentionCount = retentionCount }
+                        : settings.AutomaticBackups.BeforePortraitTransfer,
+                },
+            },
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// 更新角色配置手动备份的清理开关与保留数量。
+    /// 关闭时保留数量照常保存，重新开启后生效。
+    /// </summary>
+    public Task SetManualCharacterBackupCleanupAsync(
+        BackupRetentionSetting setting,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(setting);
+
+        if (setting.RetentionCount is < BackupRetentionSetting.MinimumRetentionCount or
+            > BackupRetentionSetting.MaximumRetentionCount)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(setting),
+                setting.RetentionCount,
+                $"手动备份保留数量必须在 {BackupRetentionSetting.MinimumRetentionCount} 到 " +
+                $"{BackupRetentionSetting.MaximumRetentionCount} 之间。");
+        }
+
+        return UpdateAsync(
+            settings => settings with { ManualCharacterBackupCleanup = setting },
             cancellationToken);
     }
 

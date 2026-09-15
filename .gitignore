@@ -28,6 +28,9 @@ publish/
 logs/
 .local/
 
+# Local agent workspace data
+.workbuddy/
+
 # OS metadata
 .DS_Store
 Thumbs.db

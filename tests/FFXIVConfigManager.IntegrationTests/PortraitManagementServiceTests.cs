@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Portraits;
 using FFXIVConfigManager.Domain.Portraits;
 using FFXIVConfigManager.Infrastructure.Portraits;
@@ -119,7 +120,8 @@ public sealed class PortraitManagementServiceTests : IDisposable
             PortraitBackupIntegrity.Corrupted,
             null,
             null,
-            ["损坏"]);
+            ["损坏"],
+            BackupRule.Manual);
         var service = new ZipPortraitManagementService();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -155,7 +157,8 @@ public sealed class PortraitManagementServiceTests : IDisposable
             PortraitBackupIntegrity.Corrupted,
             null,
             null,
-            ["损坏"]);
+            ["损坏"],
+            BackupRule.Manual);
         var service = new ZipPortraitManagementService();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -187,7 +190,35 @@ public sealed class PortraitManagementServiceTests : IDisposable
         Assert.Equal(targetBefore.AsSpan(0, 4).ToArray(), targetAfter.Data.SerializedRecord.AsSpan(0, 4).ToArray());
         Assert.Equal(targetBefore.AsSpan(0x62).ToArray(), targetAfter.Data.SerializedRecord.AsSpan(0x62).ToArray());
         Assert.Equal(now, targetAfter.Data.LastUpdatedUtc);
-        Assert.Equal(PortraitBackupReason.BeforeTransfer, result.RecoveryPoint.Manifest!.Reason);
+        Assert.Equal(PortraitBackupReason.BeforeTransfer, result.RecoveryPoint!.Manifest!.Reason);
+    }
+
+    [Fact]
+    public async Task TransferAsync_DisabledRecoveryPointStillMergesWithoutBackup()
+    {
+        var sourceCharacter = CreateCharacter("FFXIV_CHR1111111111111111", 1, "来源", 19, 0, 1_700_000_000, visualSeed: 10);
+        var targetCharacter = CreateCharacter("FFXIV_CHR2222222222222222", 2, "目标", 24, 0, 1_600_000_000, visualSeed: 80);
+        var library = Path.Combine(_root, "library");
+        Directory.CreateDirectory(library);
+        var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+        var service = new ZipPortraitManagementService(new FixedTimeProvider(now));
+        var source = Assert.Single(await service.ScanCharacterAsync(sourceCharacter));
+        var target = Assert.Single(await service.ScanCharacterAsync(targetCharacter));
+        var targetBefore = target.Data.SerializedRecord.ToArray();
+
+        var result = await service.TransferAsync(
+            PortraitTransferSource.FromCharacter(source),
+            target,
+            library,
+            createRecoveryPoint: false);
+        var targetAfter = Assert.Single(await service.ScanCharacterAsync(targetCharacter));
+
+        Assert.Equal(source.Data.SerializedRecord.AsSpan(0x04, 0x58).ToArray(),
+            targetAfter.Data.SerializedRecord.AsSpan(0x04, 0x58).ToArray());
+        Assert.Equal(targetBefore.AsSpan(0, 4).ToArray(), targetAfter.Data.SerializedRecord.AsSpan(0, 4).ToArray());
+        Assert.Equal(now, targetAfter.Data.LastUpdatedUtc);
+        Assert.Null(result.RecoveryPoint);
+        Assert.Empty(await service.ScanBackupsAsync(library));
     }
 
     [Fact]

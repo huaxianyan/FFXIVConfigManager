@@ -1,3 +1,4 @@
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Snapshots;
 using FFXIVConfigManager.Domain.Snapshots;
 using FFXIVConfigManager.Infrastructure.Snapshots;
@@ -148,7 +149,8 @@ public sealed class TransactionalSnapshotRestorerTests : IDisposable
             DateTimeOffset.Parse("2026-08-11T04:00:00Z"),
             SnapshotReason.Manual,
             new SnapshotSource(Guid.NewGuid(), "测试", "FFXIV_CHR0000000000000001"),
-            sources));
+            sources,
+            BackupCategory.Manual));
     }
 
     private string CreateTarget(params (string FileName, string Content)[] files)

@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Snapshots;
 using FFXIVConfigManager.Domain.Snapshots;
 
@@ -32,8 +33,10 @@ public sealed class ZipSnapshotArchiveService : ISnapshotArchiveService
         var libraryRoot = Path.GetFullPath(request.LibraryRoot);
         var stagingDirectory = Path.Combine(libraryRoot, ".staging", request.SnapshotId.ToString("N"));
         var targetDirectory = Path.Combine(
-            libraryRoot,
-            "backups",
+            AutomaticBackupStorage.ResolveRoot(
+                libraryRoot,
+                AutomaticBackupStorage.CharacterBackupsDirectoryName,
+                request.Category),
             request.CreatedAtUtc.ToString("yyyy"),
             request.CreatedAtUtc.ToString("MM"));
         var archiveName =

@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Portraits;
 using FFXIVConfigManager.Domain.Characters;
 using FFXIVConfigManager.Domain.Portraits;
@@ -91,17 +92,14 @@ public sealed class ZipPortraitManagementService(
         string libraryRoot,
         CancellationToken cancellationToken = default)
     {
-        var root = GetBackupRoot(libraryRoot);
-        if (!Directory.Exists(root))
-        {
-            return [];
-        }
-
         var entries = new List<PortraitBackupEntry>();
-        foreach (var path in Directory.EnumerateFiles(root, $"*{ArchiveExtension}", SearchOption.AllDirectories))
+        foreach (var (path, category) in AutomaticBackupStorage.EnumerateArchives(
+                     libraryRoot,
+                     AutomaticBackupStorage.PortraitBackupsDirectoryName,
+                     $"*{ArchiveExtension}"))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            entries.Add(await VerifyArchiveAsync(path, cancellationToken));
+            entries.Add(await VerifyArchiveAsync(path, category, cancellationToken));
         }
 
         return entries
@@ -133,6 +131,9 @@ public sealed class ZipPortraitManagementService(
             schemeName,
             note,
             reason,
+            reason == PortraitBackupReason.BeforeTransfer
+                ? BackupCategory.Automatic
+                : BackupCategory.Manual,
             cancellationToken);
     }
 
@@ -140,6 +141,7 @@ public sealed class ZipPortraitManagementService(
         PortraitTransferSource source,
         CharacterPortrait target,
         string libraryRoot,
+        bool createRecoveryPoint = true,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -178,13 +180,19 @@ public sealed class ZipPortraitManagementService(
             throw new InvalidOperationException("目标套装的肖像数据或关联已经变化，请刷新后重试。");
         }
 
-        var recoveryPoint = await CreateArchiveAsync(
-            currentTarget,
-            libraryRoot,
-            $"{currentTarget.GearsetNumber:00} {currentTarget.GearsetName} · 操作前恢复点",
-            "肖像恢复或迁移前自动创建。",
-            PortraitBackupReason.BeforeTransfer,
-            cancellationToken);
+        PortraitBackupEntry? recoveryPoint = null;
+        if (createRecoveryPoint)
+        {
+            recoveryPoint = await CreateArchiveAsync(
+                currentTarget,
+                libraryRoot,
+                $"{currentTarget.GearsetNumber:00} {currentTarget.GearsetName} · 操作前恢复点",
+                "肖像恢复或迁移前自动创建。",
+                PortraitBackupReason.BeforeTransfer,
+                BackupCategory.Automatic,
+                cancellationToken);
+        }
+
         var mergedRecord = sourceData.ApplyVisualDataTo(
             parsed.Portraits[currentTarget.BannerIndex],
             _timeProvider.GetUtcNow());
@@ -207,8 +215,8 @@ public sealed class ZipPortraitManagementService(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(backup);
-        var path = GetValidatedBackupPath(backup, libraryRoot);
-        var current = await VerifyArchiveAsync(path, cancellationToken);
+        var (path, _) = GetValidatedBackupPath(backup, libraryRoot);
+        var current = await VerifyArchiveAsync(path, backup.Rule.ToPathCategory(), cancellationToken);
         if (backup.Integrity != PortraitBackupIntegrity.Valid ||
             backup.Manifest is null ||
             backup.Data is null ||
@@ -243,7 +251,10 @@ public sealed class ZipPortraitManagementService(
                 updatedManifest,
                 current.Data.SerializedRecord,
                 cancellationToken);
-            var staged = await VerifyArchiveAsync(temporaryPath, cancellationToken);
+            var staged = await VerifyArchiveAsync(
+                temporaryPath,
+                backup.Rule.ToPathCategory(),
+                cancellationToken);
             if (staged.Integrity != PortraitBackupIntegrity.Valid ||
                 staged.Manifest != updatedManifest ||
                 staged.Data is null ||
@@ -261,7 +272,10 @@ public sealed class ZipPortraitManagementService(
             File.Replace(temporaryPath, path, rollbackPath, ignoreMetadataErrors: true);
             try
             {
-                var updated = await VerifyArchiveAsync(path, cancellationToken);
+                var updated = await VerifyArchiveAsync(
+                    path,
+                    backup.Rule.ToPathCategory(),
+                    cancellationToken);
                 if (updated.Integrity != PortraitBackupIntegrity.Valid || updated.Manifest != updatedManifest)
                 {
                     throw new InvalidDataException("肖像备份写入后校验失败。");
@@ -303,8 +317,7 @@ public sealed class ZipPortraitManagementService(
     {
         ArgumentNullException.ThrowIfNull(backup);
         cancellationToken.ThrowIfCancellationRequested();
-        var root = Path.GetFullPath(GetBackupRoot(libraryRoot));
-        var path = GetValidatedBackupPath(backup, libraryRoot);
+        var (path, root) = GetValidatedBackupPath(backup, libraryRoot);
         if (!File.Exists(path))
         {
             throw new FileNotFoundException("要删除的肖像备份方案已经不存在。", path);
@@ -315,22 +328,37 @@ public sealed class ZipPortraitManagementService(
         return Task.CompletedTask;
     }
 
-    private static string GetValidatedBackupPath(
+    /// <summary>
+    /// 校验备份确实位于本库的肖像备份区内，并返回它所属的根目录。
+    /// 手动备份区与 automatic/ 自动备份区都接受。
+    /// </summary>
+    private static (string Path, string Root) GetValidatedBackupPath(
         PortraitBackupEntry backup,
         string libraryRoot)
     {
-        var root = Path.GetFullPath(GetBackupRoot(libraryRoot));
         var path = Path.GetFullPath(backup.ArchivePath);
-        var relativePath = Path.GetRelativePath(root, path);
-        if (relativePath == ".." ||
-            relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-            Path.IsPathRooted(relativePath) ||
-            !path.EndsWith(ArchiveExtension, StringComparison.OrdinalIgnoreCase))
+        if (!path.EndsWith(ArchiveExtension, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("只能编辑或删除当前肖像备份区中的方案文件。");
         }
 
-        return path;
+        foreach (var category in (BackupCategory[])[BackupCategory.Manual, BackupCategory.Automatic])
+        {
+            var root = Path.GetFullPath(AutomaticBackupStorage.ResolveRoot(
+                libraryRoot,
+                AutomaticBackupStorage.PortraitBackupsDirectoryName,
+                category));
+            var relativePath = Path.GetRelativePath(root, path);
+            if (relativePath != ".." &&
+                !relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                !relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal) &&
+                !Path.IsPathRooted(relativePath))
+            {
+                return (path, root);
+            }
+        }
+
+        throw new InvalidOperationException("只能编辑或删除当前肖像备份区中的方案文件。");
     }
 
     private async Task<PortraitData> ResolveTransferSourceAsync(
@@ -358,7 +386,10 @@ public sealed class ZipPortraitManagementService(
         }
 
         var selectedBackup = source.Backup!;
-        var verified = await VerifyArchiveAsync(selectedBackup.ArchivePath, cancellationToken);
+        var verified = await VerifyArchiveAsync(
+            selectedBackup.ArchivePath,
+            selectedBackup.Rule.ToPathCategory(),
+            cancellationToken);
         if (verified.Integrity != PortraitBackupIntegrity.Valid || verified.Data is null ||
             verified.Manifest?.BackupId != selectedBackup.Manifest?.BackupId)
         {
@@ -374,6 +405,7 @@ public sealed class ZipPortraitManagementService(
         string schemeName,
         string note,
         PortraitBackupReason reason,
+        BackupCategory category,
         CancellationToken cancellationToken)
     {
         var now = _timeProvider.GetUtcNow();
@@ -397,7 +429,10 @@ public sealed class ZipPortraitManagementService(
         manifest.Validate();
 
         var directory = Path.Combine(
-            GetBackupRoot(libraryRoot),
+            AutomaticBackupStorage.ResolveRoot(
+                libraryRoot,
+                AutomaticBackupStorage.PortraitBackupsDirectoryName,
+                category),
             now.ToString("yyyy"),
             now.ToString("MM"));
         Directory.CreateDirectory(directory);
@@ -409,7 +444,7 @@ public sealed class ZipPortraitManagementService(
         {
             await WriteArchiveAsync(temporaryPath, manifest, data, cancellationToken);
 
-            var verification = await VerifyArchiveAsync(temporaryPath, cancellationToken);
+            var verification = await VerifyArchiveAsync(temporaryPath, category, cancellationToken);
             if (verification.Integrity != PortraitBackupIntegrity.Valid)
             {
                 throw new InvalidDataException(
@@ -460,6 +495,7 @@ public sealed class ZipPortraitManagementService(
 
     private static async Task<PortraitBackupEntry> VerifyArchiveAsync(
         string archivePath,
+        BackupCategory pathCategory,
         CancellationToken cancellationToken)
     {
         var path = Path.GetFullPath(archivePath);
@@ -537,7 +573,8 @@ public sealed class ZipPortraitManagementService(
                 PortraitBackupIntegrity.Valid,
                 manifest,
                 portrait,
-                []);
+                [],
+                BackupRules.ResolvePortrait(pathCategory, manifest.Reason));
         }
         catch (OperationCanceledException)
         {
@@ -552,7 +589,8 @@ public sealed class ZipPortraitManagementService(
                 PortraitBackupIntegrity.Corrupted,
                 null,
                 null,
-                [$"读取肖像备份失败：{exception.Message}"]);
+                [$"读取肖像备份失败：{exception.Message}"],
+                BackupRules.ResolvePortrait(pathCategory, reason: null));
         }
     }
 
@@ -949,16 +987,6 @@ public sealed class ZipPortraitManagementService(
         {
             data[index] ^= mask;
         }
-    }
-
-    private static string GetBackupRoot(string libraryRoot)
-    {
-        if (string.IsNullOrWhiteSpace(libraryRoot))
-        {
-            throw new ArgumentException("备份库目录不能为空。", nameof(libraryRoot));
-        }
-
-        return Path.Combine(Path.GetFullPath(libraryRoot), "portrait-backups");
     }
 
     private static StringComparison GetPathComparison() =>

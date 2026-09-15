@@ -4,7 +4,9 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Portraits;
+using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Desktop.Localization;
 using FFXIVConfigManager.Desktop.Services;
 using FFXIVConfigManager.Domain.Portraits;
@@ -28,6 +30,7 @@ public sealed partial class PortraitManagementViewModel : ViewModelBase
     private readonly string _libraryRoot;
     private readonly IPortraitBackupEditDialogService _editDialog;
     private readonly ITextLocalizer _text;
+    private readonly bool _createRecoveryPoint;
     private readonly List<PortraitListItemViewModel> _allLeftItems = [];
     private readonly List<PortraitListItemViewModel> _allRightItems = [];
     private int _leftLoadVersion;
@@ -38,11 +41,13 @@ public sealed partial class PortraitManagementViewModel : ViewModelBase
         string libraryRoot,
         IReadOnlyList<PortraitSourceOptionViewModel> characters,
         IPortraitBackupEditDialogService editDialog,
+        AutomaticBackupPolicy policy,
         ITextLocalizer text)
     {
         _service = service;
         _libraryRoot = libraryRoot;
         _editDialog = editDialog;
+        _createRecoveryPoint = policy.BeforePortraitTransfer.Enabled;
         _text = text;
         StatusMessage = text["PortraitSelectSpecificHint"];
         Sources =
@@ -133,6 +138,15 @@ public sealed partial class PortraitManagementViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsBackupOperation))]
     [NotifyCanExecuteChangedFor(nameof(ExecuteOperationCommand))]
     public partial bool IsDirectionReversed { get; private set; }
+
+    [ObservableProperty]
+    public partial bool ShowAutomaticBackups { get; set; }
+
+    partial void OnShowAutomaticBackupsChanged(bool value)
+    {
+        ApplyLeftFilter();
+        ApplyRightFilter();
+    }
 
     public bool IsBackupOperation =>
         GetSourceEndpoint()?.Kind == PortraitSourceKind.Character &&
@@ -385,7 +399,9 @@ public sealed partial class PortraitManagementViewModel : ViewModelBase
         {
             IsConfirmationArmed = true;
             StatusMessage = _text.Format(
-                "PortraitOverwriteConfirmationFormat",
+                _createRecoveryPoint
+                    ? "PortraitOverwriteConfirmationFormat"
+                    : "PortraitOverwriteConfirmationNoRecoveryFormat",
                 GetTargetItem()!.GearsetNumberText,
                 OperationName.Trim('→', '←', ' '));
             return;
@@ -419,7 +435,12 @@ public sealed partial class PortraitManagementViewModel : ViewModelBase
                     ?? throw new InvalidOperationException(_text["PortraitSourceUnavailable"]));
             var target = GetTargetItem()!.CharacterPortrait
                 ?? throw new InvalidOperationException(_text["PortraitTargetUnavailable"]);
-            await _service.TransferAsync(transferSource, target, _libraryRoot, cancellationToken);
+            await _service.TransferAsync(
+                transferSource,
+                target,
+                _libraryRoot,
+                _createRecoveryPoint,
+                cancellationToken);
             StatusMessage = kind == PortraitOperationKind.Restore
                 ? _text.Format("PortraitRestoredFormat", target.GearsetNumber)
                 : _text.Format("PortraitMigratedFormat", target.GearsetNumber);
@@ -617,10 +638,16 @@ public sealed partial class PortraitManagementViewModel : ViewModelBase
             RightItems,
             IsRightBackupArea ? FilterBackups(_allRightItems, RightSearchText) : _allRightItems);
 
-    private static IReadOnlyList<PortraitListItemViewModel> FilterBackups(
+    private IReadOnlyList<PortraitListItemViewModel> FilterBackups(
         IReadOnlyList<PortraitListItemViewModel> items,
         string searchText)
     {
+        if (!ShowAutomaticBackups)
+        {
+            items = items
+                .Where(item => item.BackupEntry?.Rule == BackupRule.Manual)
+                .ToArray();
+        }
         var query = searchText.Trim();
         if (query.Length == 0)
         {

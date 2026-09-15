@@ -1,3 +1,4 @@
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Snapshots;
 using FFXIVConfigManager.Domain.Characters;
 using FFXIVConfigManager.Domain.Snapshots;
@@ -21,7 +22,8 @@ public sealed class PreviewSnapshotUseCaseTests
             DateTimeOffset.UtcNow,
             SnapshotIntegrityStatus.Valid,
             manifest,
-            []);
+            [],
+            BackupRule.Manual);
         var target = new CharacterConfiguration(
             manifest.Source.ProfileId,
             CharacterFolderName.Create(manifest.Source.CharacterFolder),

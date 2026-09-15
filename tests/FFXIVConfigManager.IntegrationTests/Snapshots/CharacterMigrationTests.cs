@@ -46,8 +46,47 @@ public sealed class CharacterMigrationTests : IDisposable
         Assert.Equal("source-hotbar", await File.ReadAllTextAsync(Path.Combine(targetPath, "HOTBAR.DAT")));
         Assert.Equal("target-private", await File.ReadAllTextAsync(Path.Combine(targetPath, "ACQ.DAT")));
         Assert.Equal(2, result.RestoreResult.RestoredFileCount);
-        Assert.Equal("BeforeMigration", result.TargetRecoveryPoint.Manifest.Reason.ToString());
+        Assert.Equal("BeforeMigration", result.TargetRecoveryPoint!.Manifest.Reason.ToString());
         Assert.Equal("MigrationSource", result.SourceSnapshot.Manifest.Reason.ToString());
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_DisabledRecoveryPointStillMigratesWithSourceSnapshot()
+    {
+        var sourcePath = CreateCharacterDirectory(
+            "source",
+            ("ADDON.DAT", "source-hud"),
+            ("HOTBAR.DAT", "source-hotbar"));
+        var targetPath = CreateCharacterDirectory(
+            "target",
+            ("ADDON.DAT", "target-hud"),
+            ("HOTBAR.DAT", "target-hotbar"));
+        var sourceProfile = new GameProfile(Guid.NewGuid(), "国际服", GameRegion.International, _root);
+        var targetProfile = new GameProfile(Guid.NewGuid(), "国服", GameRegion.China, _root);
+        var source = CreateCharacter(sourceProfile, sourcePath, "FFXIV_CHR0000000000000001");
+        var target = CreateCharacter(targetProfile, targetPath, "FFXIV_CHR0000000000000002");
+        var library = Path.Combine(_root, "library");
+        var archiveService = new ZipSnapshotArchiveService();
+        var useCase = new MigrateCharacterConfigurationUseCase(
+            new CreateCharacterSnapshotUseCase(archiveService, TimeProvider.System),
+            new TransactionalSnapshotRestorer());
+
+        var result = await useCase.ExecuteAsync(
+            sourceProfile,
+            source,
+            targetProfile,
+            target,
+            library,
+            createRecoveryPoint: false);
+
+        Assert.Equal("source-hud", await File.ReadAllTextAsync(Path.Combine(targetPath, "ADDON.DAT")));
+        Assert.Equal("source-hotbar", await File.ReadAllTextAsync(Path.Combine(targetPath, "HOTBAR.DAT")));
+        Assert.Null(result.TargetRecoveryPoint);
+        Assert.Equal("MigrationSource", result.SourceSnapshot.Manifest.Reason.ToString());
+        Assert.Equal(
+            1,
+            Directory.GetFiles(library, "*", SearchOption.AllDirectories)
+                .Count(file => file.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)));
     }
 
     private string CreateCharacterDirectory(

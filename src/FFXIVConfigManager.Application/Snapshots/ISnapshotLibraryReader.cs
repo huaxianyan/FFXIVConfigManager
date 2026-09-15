@@ -1,3 +1,4 @@
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Domain.Snapshots;
 
 namespace FFXIVConfigManager.Application.Snapshots;
@@ -14,7 +15,14 @@ public sealed record SnapshotLibraryEntry(
     DateTimeOffset ArchiveLastWriteTimeUtc,
     SnapshotIntegrityStatus IntegrityStatus,
     SnapshotManifest? Manifest,
-    IReadOnlyList<string> Errors);
+    IReadOnlyList<string> Errors,
+    BackupRule Rule)
+{
+    public DateTimeOffset CreatedAtUtc =>
+        Manifest?.CreatedAtUtc ?? ArchiveLastWriteTimeUtc;
+
+    public bool IsAutomatic => Rule.IsAutomatic();
+}
 
 public interface ISnapshotLibraryReader
 {

@@ -1,3 +1,4 @@
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Snapshots;
 
 namespace FFXIVConfigManager.Infrastructure.Snapshots;
@@ -16,32 +17,32 @@ public sealed class PhysicalSnapshotLibraryReader(
         }
 
         var normalizedRoot = Path.GetFullPath(libraryRoot);
-        var storageRoots = new[]
-        {
-            Path.Combine(normalizedRoot, "backups"),
-            // 兼容 0.1.0 预览版创建的目录，新的备份不会再写入这里。
-            Path.Combine(normalizedRoot, "snapshots"),
-        };
         var pathComparer = OperatingSystem.IsWindows()
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal;
-        var archivePaths = storageRoots
-            .Where(Directory.Exists)
-            .SelectMany(root => Directory.EnumerateFiles(
-                root,
-                "*.ffxivconfig.zip",
-                SearchOption.AllDirectories))
-            .Distinct(pathComparer)
+        var archives = AutomaticBackupStorage
+            .EnumerateArchives(
+                normalizedRoot,
+                AutomaticBackupStorage.CharacterBackupsDirectoryName,
+                "*.ffxivconfig.zip")
+            .Concat(AutomaticBackupStorage.EnumerateArchives(
+                normalizedRoot,
+                // 兼容 0.1.0 预览版创建的目录，新的备份不会再写入这里。
+                AutomaticBackupStorage.LegacyCharacterBackupsDirectoryName,
+                "*.ffxivconfig.zip"))
+            .GroupBy(item => item.Path, pathComparer)
+            .Select(group => group.First())
             .ToArray();
         using var concurrency = new SemaphoreSlim(maximumConcurrency, maximumConcurrency);
-        var tasks = archivePaths.Select(path =>
-            ReadEntryAsync(path, concurrency, cancellationToken));
+        var tasks = archives.Select(item =>
+            ReadEntryAsync(item.Path, item.Category, concurrency, cancellationToken));
 
         return await Task.WhenAll(tasks);
     }
 
     private async Task<SnapshotLibraryEntry> ReadEntryAsync(
         string path,
+        BackupCategory pathCategory,
         SemaphoreSlim concurrency,
         CancellationToken cancellationToken)
     {
@@ -63,7 +64,8 @@ public sealed class PhysicalSnapshotLibraryReader(
                     ? SnapshotIntegrityStatus.Valid
                     : SnapshotIntegrityStatus.Corrupted,
                 verification.Manifest,
-                verification.Errors);
+                verification.Errors,
+                BackupRules.ResolveCharacter(pathCategory, verification.Manifest?.Reason));
         }
         catch (OperationCanceledException)
         {
@@ -77,7 +79,8 @@ public sealed class PhysicalSnapshotLibraryReader(
                 DateTimeOffset.MinValue,
                 SnapshotIntegrityStatus.Corrupted,
                 null,
-                [$"读取备份失败：{exception.Message}"]);
+                [$"读取备份失败：{exception.Message}"],
+                BackupRules.ResolveCharacter(pathCategory, reason: null));
         }
         finally
         {

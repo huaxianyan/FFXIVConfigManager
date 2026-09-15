@@ -19,6 +19,7 @@ public sealed class RestoreSnapshotUseCase(
         GameProfile targetProfile,
         CharacterConfiguration target,
         string libraryRoot,
+        bool createRecoveryPoint = true,
         CancellationToken cancellationToken = default)
     {
         if (!target.BelongsTo(targetProfile))
@@ -63,7 +64,7 @@ public sealed class RestoreSnapshotUseCase(
         }
 
         CreatedSnapshot? recoveryPoint = null;
-        if (targetDirectoryExisted && target.Files.Count > 0)
+        if (createRecoveryPoint && targetDirectoryExisted && target.Files.Count > 0)
         {
             recoveryPoint = await createSnapshot.ExecuteAllKnownAsync(
                 targetProfile,

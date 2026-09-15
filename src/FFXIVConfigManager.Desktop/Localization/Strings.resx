@@ -157,7 +157,7 @@
     <value>迁移范围</value>
   </data>
   <data name="MigrationScopeDescription" xml:space="preserve">
-    <value>默认范围包含 UISAVE.DAT（界面状态、场地标点与肖像数据）和 GEARSET.DAT（套装列表与即时肖像关联），但不包含隐私、缓存和物品排序。迁移这两个文件会整体覆盖其中的其他数据，不能只恢复肖像。高级的「全部 14 个已知文件」模式还会覆盖 ACQ.DAT、ITEMFDR.DAT、ITEMODR.DAT 等文件，仅建议确认确有需要时使用。迁移前始终会创建目标恢复点。</value>
+    <value>默认范围包含 UISAVE.DAT（界面状态、场地标点与肖像数据）和 GEARSET.DAT（套装列表与即时肖像关联），但不包含隐私、缓存和物品排序。迁移这两个文件会整体覆盖其中的其他数据，不能只恢复肖像。高级的「全部 14 个已知文件」模式还会覆盖 ACQ.DAT、ITEMFDR.DAT、ITEMODR.DAT 等文件，仅建议确认确有需要时使用。是否创建目标恢复点取决于设置中的「自动备份」选项。</value>
   </data>
   <data name="GenerateMigrationPreview" xml:space="preserve">
     <value>生成迁移预览</value>
@@ -364,10 +364,10 @@
     <value>迁移选择已变化，请重新生成预览。</value>
   </data>
   <data name="MigrationRequiresLibrary" xml:space="preserve">
-    <value>请先设置备份库，以保存迁移源和目标恢复点。</value>
+    <value>请先设置备份库，以保存迁移期间所需的备份。</value>
   </data>
   <data name="PreparingMigration" xml:space="preserve">
-    <value>正在创建迁移源备份和目标恢复点……</value>
+    <value>正在创建迁移所需的备份……</value>
   </data>
   <data name="MigrationCompletedFormat" xml:space="preserve">
     <value>迁移完成，共迁移 {0} 个文件，目标恢复点：{1}</value>
@@ -485,6 +485,9 @@
   </data>
   <data name="BackupOptionFormat" xml:space="preserve">
     <value>{0} · {1} · {2}</value>
+  </data>
+  <data name="ManualBackupOptionFormat" xml:space="preserve">
+    <value>{0} · {1}</value>
   </data>
   <data name="SettingsBackupStatusTitle" xml:space="preserve">
     <value>软件设置备份状态</value>
@@ -826,7 +829,7 @@
     <value>每个备份方案只保存左栏选中的一条肖像。</value>
   </data>
   <data name="PortraitOverwriteHint" xml:space="preserve">
-    <value>恢复和迁移会覆盖右栏选中的具体肖像，并先自动创建恢复点。</value>
+    <value>恢复和迁移会覆盖右栏选中的具体肖像，覆盖前需要二次确认。</value>
   </data>
   <data name="PortraitOperationRules" xml:space="preserve">
     <value>操作规则：角色 → 角色为迁移，角色 → 备份为创建备份，备份 → 角色为恢复。相同数据源之间不可操作。</value>
@@ -943,7 +946,7 @@
     <value>切换操作方向</value>
   </data>
   <data name="AppearanceOverwriteHint" xml:space="preserve">
-    <value>空栏位可以直接写入。覆盖已有栏位时会先要求二次确认并自动创建恢复点。</value>
+    <value>空栏位可以直接写入。覆盖已有栏位时会先要求二次确认。</value>
   </data>
   <data name="AppearanceEmptySlot" xml:space="preserve">
     <value>空栏位</value>
@@ -1007,5 +1010,89 @@
   </data>
   <data name="UpdatePortraitSchemeFailedFormat" xml:space="preserve">
     <value>编辑肖像备份方案失败：{0}</value>
+  </data>
+  <data name="AutomaticBackup" xml:space="preserve">
+    <value>自动备份</value>
+  </data>
+  <data name="AutomaticBackupDescription" xml:space="preserve">
+    <value>选择哪些操作会在执行前自动创建恢复点。取消勾选后，对应操作不再生成恢复点，操作完成后也不需要再手动清理。</value>
+  </data>
+  <data name="AutomaticBackupBeforeCharacterRestore" xml:space="preserve">
+    <value>恢复角色配置前创建恢复点</value>
+  </data>
+  <data name="AutomaticBackupBeforeCharacterMigration" xml:space="preserve">
+    <value>迁移角色配置前创建目标恢复点</value>
+  </data>
+  <data name="AutomaticBackupBeforeAppearanceRestore" xml:space="preserve">
+    <value>恢复或迁移角色形象前创建恢复点</value>
+  </data>
+  <data name="AutomaticBackupBeforePortraitTransfer" xml:space="preserve">
+    <value>恢复或迁移肖像前创建恢复点</value>
+  </data>
+  <data name="AutomaticBackupRollbackHint" xml:space="preserve">
+    <value>关闭自动恢复点不影响操作失败时的自动回滚，暂存写入、写后校验和事务日志始终生效。</value>
+  </data>
+  <data name="SaveAutomaticBackupFailedFormat" xml:space="preserve">
+    <value>保存自动备份设置失败：{0}</value>
+  </data>
+  <data name="RestoreSucceededNoRecoveryFormat" xml:space="preserve">
+    <value>已恢复 {0} 个文件，本次操作未创建恢复点。</value>
+  </data>
+  <data name="MigrationCompletedNoRecoveryFormat" xml:space="preserve">
+    <value>迁移完成，共迁移 {0} 个文件，本次操作未创建目标恢复点。</value>
+  </data>
+  <data name="OverwriteAppearanceWarningNoRecovery" xml:space="preserve">
+    <value>目标栏位已有数据，且本次操作不会创建恢复点。请核对预览信息，再次点击按钮确认覆盖。</value>
+  </data>
+  <data name="PortraitOverwriteConfirmationNoRecoveryFormat" xml:space="preserve">
+    <value>将覆盖右栏选中的套装 {0} 肖像，且本次操作不会创建恢复点。请再次点击「{1}」确认。</value>
+  </data>
+  <data name="ManualBackupsTabFormat" xml:space="preserve">
+    <value>手动备份（{0}）</value>
+  </data>
+  <data name="AutomaticBackupsTabFormat" xml:space="preserve">
+    <value>自动恢复点（{0}）</value>
+  </data>
+  <data name="AutomaticLayerHintFormat" xml:space="preserve">
+    <value>已切换到自动恢复点，共 {0} 份。自动备份按设置里的保留数量自动清理，不占手动备份列表。</value>
+  </data>
+  <data name="ManualLayerHintFormat" xml:space="preserve">
+    <value>设置里已开启「手动备份清理」，保留 {0} 份，超出的旧备份会在刷新备份库时被删除。</value>
+  </data>
+  <data name="BackupRetentionUnit" xml:space="preserve">
+    <value>份</value>
+  </data>
+  <data name="PruneAutomaticBackupsNow" xml:space="preserve">
+    <value>立即清理</value>
+  </data>
+  <data name="AutomaticBackupPruneHint" xml:space="preserve">
+    <value>刷新备份库时也会按保留数量自动清理已开启功能的备份。关闭的功能不会被清理。</value>
+  </data>
+  <data name="ManualBackupCleanup" xml:space="preserve">
+    <value>手动备份清理</value>
+  </data>
+  <data name="ManualBackupCleanupDescription" xml:space="preserve">
+    <value>角色配置的手动备份会一直累积。开启后，超出保留数量的手动备份会在刷新备份库时被清理。只处理你自己点「创建备份」生成的那些，自动恢复点以及形象与肖像的手动备份都不受影响。</value>
+  </data>
+  <data name="ManualBackupCleanupToggle" xml:space="preserve">
+    <value>自动清理角色配置的手动备份</value>
+  </data>
+  <data name="ManualBackupCleanupHint" xml:space="preserve">
+    <value>默认关闭，关闭时不会删除任何手动备份。「立即清理」在开启后同样会处理手动备份。</value>
+  </data>
+  <data name="SaveManualBackupCleanupFailedFormat" xml:space="preserve">
+    <value>保存手动备份清理设置失败：{0}</value>
+  </data>
+  <data name="BackupPrunedFormat" xml:space="preserve">
+    <value>已按保留数量清理 {0} 份备份。</value>
+  </data>
+  <data name="BackupPrunedWithFailuresFormat" xml:space="preserve">
+    <value>已清理 {0} 份备份，另有 {1} 份删除失败，详见日志。</value>
+  </data>
+  <data name="BackupPruneFailedFormat" xml:space="preserve">
+    <value>清理备份失败：{0}</value>
+  </data>
+  <data name="ShowAutomaticRecoveryPoints" xml:space="preserve">
+    <value>显示自动恢复点</value>
   </data>
 </root>

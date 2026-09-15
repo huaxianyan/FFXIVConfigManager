@@ -1,5 +1,7 @@
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Snapshots;
 using FFXIVConfigManager.Domain.Characters;
+using FFXIVConfigManager.Domain.Files;
 using FFXIVConfigManager.Domain.Profiles;
 using FFXIVConfigManager.Domain.Snapshots;
 
@@ -82,6 +84,59 @@ public sealed class RestoreSnapshotUseCaseTests : IDisposable
         Assert.False(Directory.Exists(target.FullPath));
     }
 
+    [Fact]
+    public async Task ExecuteAsync_DisabledRecoveryPointDoesNotBackUpExistingCharacter()
+    {
+        Directory.CreateDirectory(_root);
+        var profile = new GameProfile(Guid.NewGuid(), "测试", GameRegion.Custom, _root);
+        var target = CreateExistingTarget(profile);
+        Directory.CreateDirectory(target.FullPath);
+        await File.WriteAllTextAsync(Path.Combine(target.FullPath, "ADDON.DAT"), "current");
+        var archive = new VerifiedArchiveService(CreateManifest(profile, target));
+        var restorer = new CapturingRestorer();
+        var useCase = new RestoreSnapshotUseCase(
+            archive,
+            new CreateCharacterSnapshotUseCase(archive, TimeProvider.System),
+            restorer);
+
+        var result = await useCase.ExecuteAsync(
+            CreateEntry(archive.Manifest),
+            profile,
+            target,
+            Path.Combine(_root, "library"),
+            createRecoveryPoint: false);
+
+        Assert.Null(result.RecoveryPoint);
+        Assert.False(result.CreatedTargetDirectory);
+        Assert.Equal(target.FullPath, restorer.Request!.TargetDirectory);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ExistingCharacterKeepsRecoveryPointByDefault()
+    {
+        Directory.CreateDirectory(_root);
+        var profile = new GameProfile(Guid.NewGuid(), "测试", GameRegion.Custom, _root);
+        var target = CreateExistingTarget(profile);
+        Directory.CreateDirectory(target.FullPath);
+        await File.WriteAllTextAsync(Path.Combine(target.FullPath, "ADDON.DAT"), "current");
+        var archive = new RecordingArchiveService(CreateManifest(profile, target));
+        var restorer = new CapturingRestorer();
+        var useCase = new RestoreSnapshotUseCase(
+            archive,
+            new CreateCharacterSnapshotUseCase(archive, TimeProvider.System),
+            restorer);
+
+        var result = await useCase.ExecuteAsync(
+            CreateEntry(archive.Manifest),
+            profile,
+            target,
+            Path.Combine(_root, "library"));
+
+        Assert.Equal(1, archive.CreateCallCount);
+        Assert.NotNull(result.RecoveryPoint);
+        Assert.Equal(SnapshotReason.BeforeRestore, archive.LastRequest!.Reason);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))
@@ -99,6 +154,22 @@ public sealed class RestoreSnapshotUseCaseTests : IDisposable
             Path.Combine(profile.ConfigRoot, folder.Value),
             DateTimeOffset.MinValue,
             []);
+    }
+
+    private static CharacterConfiguration CreateExistingTarget(GameProfile profile)
+    {
+        if (!ConfigFileCatalog.TryGet("ADDON.DAT", out var definition))
+        {
+            throw new InvalidOperationException("测试依赖 ADDON.DAT 目录项。");
+        }
+
+        var folder = CharacterFolderName.Create("FFXIV_CHR0000000000000001");
+        return new CharacterConfiguration(
+            profile.Id,
+            folder,
+            Path.Combine(profile.ConfigRoot, folder.Value),
+            DateTimeOffset.UtcNow,
+            [new CharacterConfigFile(definition, 7, DateTimeOffset.UtcNow)]);
     }
 
     private static SnapshotManifest CreateManifest(
@@ -126,7 +197,8 @@ public sealed class RestoreSnapshotUseCaseTests : IDisposable
             DateTimeOffset.UtcNow,
             SnapshotIntegrityStatus.Valid,
             manifest,
-            []);
+            [],
+            BackupRule.Manual);
 
     private sealed class VerifiedArchiveService(SnapshotManifest manifest) : ISnapshotArchiveService
     {
@@ -135,7 +207,37 @@ public sealed class RestoreSnapshotUseCaseTests : IDisposable
         public Task<CreatedSnapshot> CreateAsync(
             SnapshotArchiveRequest request,
             CancellationToken cancellationToken = default) =>
-            throw new InvalidOperationException("新角色恢复不应创建操作前恢复点。");
+            throw new InvalidOperationException("该场景不应创建恢复点。");
+
+        public Task<SnapshotVerificationResult> VerifyAsync(
+            string archivePath,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(SnapshotVerificationResult.Valid(Manifest));
+
+        public Task DeleteAsync(
+            string archivePath,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class RecordingArchiveService(SnapshotManifest manifest) : ISnapshotArchiveService
+    {
+        public SnapshotManifest Manifest { get; } = manifest;
+
+        public int CreateCallCount { get; private set; }
+
+        public SnapshotArchiveRequest? LastRequest { get; private set; }
+
+        public Task<CreatedSnapshot> CreateAsync(
+            SnapshotArchiveRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            CreateCallCount++;
+            LastRequest = request;
+            return Task.FromResult(new CreatedSnapshot(
+                Path.Combine(request.LibraryRoot, "recovery.ffxivconfig.zip"),
+                Manifest with { Reason = request.Reason }));
+        }
 
         public Task<SnapshotVerificationResult> VerifyAsync(
             string archivePath,

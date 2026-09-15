@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Snapshots;
 using FFXIVConfigManager.Domain.Snapshots;
 using FFXIVConfigManager.Infrastructure.Snapshots;
@@ -91,6 +92,45 @@ public sealed class ZipSnapshotArchiveServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateAsync_WithAutomaticCategoryWritesToAutomaticDirectoryAndReaderResolvesRule()
+    {
+        var sourceDirectory = Path.Combine(_root, "source-auto");
+        Directory.CreateDirectory(sourceDirectory);
+        var addonPath = Path.Combine(sourceDirectory, "ADDON.DAT");
+        await File.WriteAllTextAsync(addonPath, "valid");
+        var service = new ZipSnapshotArchiveService();
+        var manualRequest = CreateRequest(
+            new SnapshotFileSource(addonPath, "files/ADDON.DAT", "ADDON.DAT"));
+        var automaticRequest = manualRequest with
+        {
+            Category = BackupCategory.Automatic,
+            Reason = SnapshotReason.BeforeRestore,
+            SnapshotId = Guid.NewGuid(),
+        };
+        var manual = await service.CreateAsync(manualRequest);
+        var automatic = await service.CreateAsync(automaticRequest);
+        Assert.Contains(
+            $"{Path.DirectorySeparatorChar}backups{Path.DirectorySeparatorChar}",
+            manual.ArchivePath,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            $"{Path.DirectorySeparatorChar}automatic{Path.DirectorySeparatorChar}backups{Path.DirectorySeparatorChar}",
+            automatic.ArchivePath,
+            StringComparison.Ordinal);
+        var reader = new PhysicalSnapshotLibraryReader(service);
+
+        var entries = await reader.ScanAsync(Path.Combine(_root, "library"));
+
+        Assert.Equal(2, entries.Count);
+        Assert.Single(entries, entry =>
+            entry.Rule == BackupRule.Manual &&
+            entry.ArchivePath == manual.ArchivePath);
+        Assert.Single(entries, entry =>
+            entry.Rule == BackupRule.CharacterRestore &&
+            entry.ArchivePath == automatic.ArchivePath);
+    }
+
+    [Fact]
     public async Task DeleteAsync_RemovesPublishedBackup()
     {
         var sourceDirectory = Path.Combine(_root, "source-delete");
@@ -133,7 +173,8 @@ public sealed class ZipSnapshotArchiveServiceTests : IDisposable
                 Guid.NewGuid(),
                 "测试",
                 "FFXIV_CHR0000000000000001"),
-            files);
+            files,
+            BackupCategory.Manual);
 
     public void Dispose()
     {

@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using FFXIVConfigManager.Application.Appearances;
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Application.Discovery;
 using FFXIVConfigManager.Application.Settings;
 using FFXIVConfigManager.Application.Snapshots;
@@ -67,6 +68,14 @@ public partial class App : Avalonia.Application
                 new ZipAppearanceBackupService();
             IPortraitManagementService portraitManagementService =
                 new ZipPortraitManagementService();
+            var pruneAutomaticBackups = new PruneAutomaticBackupsUseCase(
+                snapshotLibraryReader,
+                snapshotService,
+                appearanceBackupService,
+                portraitManagementService);
+            var pruneManualCharacterBackups = new PruneManualCharacterBackupsUseCase(
+                snapshotLibraryReader,
+                snapshotService);
 
             MainWindow? window = null;
             var text = ResourceTextLocalizer.Instance;
@@ -76,6 +85,9 @@ public partial class App : Avalonia.Application
                 previewSnapshot,
                 restoreSnapshot,
                 snapshotService,
+                scanSnapshotLibrary,
+                pruneAutomaticBackups,
+                settingsService,
                 text);
             var settingsBackupDialog = new AvaloniaSettingsBackupDialogService(
                 () => window,
@@ -118,6 +130,8 @@ public partial class App : Avalonia.Application
                 portraitManagementService,
                 portraitBackupEditDialog,
                 settingsBackupDialog,
+                pruneAutomaticBackups,
+                pruneManualCharacterBackups,
                 updateService,
                 updateProxy,
                 updateProxyDialog,

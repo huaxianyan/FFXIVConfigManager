@@ -1,3 +1,4 @@
+using FFXIVConfigManager.Application.Backups;
 using FFXIVConfigManager.Domain.Snapshots;
 
 namespace FFXIVConfigManager.Application.Snapshots;
@@ -13,7 +14,8 @@ public sealed record SnapshotArchiveRequest(
     DateTimeOffset CreatedAtUtc,
     SnapshotReason Reason,
     SnapshotSource Source,
-    IReadOnlyList<SnapshotFileSource> Files);
+    IReadOnlyList<SnapshotFileSource> Files,
+    BackupCategory Category);
 
 public sealed record CreatedSnapshot(
     string ArchivePath,

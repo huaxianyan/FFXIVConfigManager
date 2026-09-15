@@ -27,6 +27,13 @@ public sealed class JsonSettingsStoreTests : IDisposable
             ShowOnlyTaggedCharacters = true,
             IsUpdateProxyEnabled = true,
             UpdateProxyAddress = "socks5://127.0.0.1:7890/",
+            AutomaticBackups = new AutomaticBackupPolicy
+            {
+                BeforeCharacterRestore = new BackupRetentionSetting(false, 3),
+                BeforeCharacterMigration = new BackupRetentionSetting(true, 7),
+                BeforeAppearanceRestore = new BackupRetentionSetting(false, 5),
+                BeforePortraitTransfer = new BackupRetentionSetting(true, 9),
+            },
         };
         var store = new JsonSettingsStore(path);
 
@@ -39,9 +46,45 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.True(actual.ShowOnlyTaggedCharacters);
         Assert.True(actual.IsUpdateProxyEnabled);
         Assert.Equal(expected.UpdateProxyAddress, actual.UpdateProxyAddress);
+        Assert.False(actual.AutomaticBackups.BeforeCharacterRestore.Enabled);
+        Assert.Equal(3, actual.AutomaticBackups.BeforeCharacterRestore.EffectiveRetentionCount);
+        Assert.True(actual.AutomaticBackups.BeforeCharacterMigration.Enabled);
+        Assert.Equal(7, actual.AutomaticBackups.BeforeCharacterMigration.EffectiveRetentionCount);
+        Assert.False(actual.AutomaticBackups.BeforeAppearanceRestore.Enabled);
+        Assert.True(actual.AutomaticBackups.BeforePortraitTransfer.Enabled);
+        Assert.Equal(9, actual.AutomaticBackups.BeforePortraitTransfer.EffectiveRetentionCount);
         Assert.Single(Directory.GetFiles(_root));
         var json = await File.ReadAllTextAsync(path);
         Assert.Contains("\"China\"", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LoadAsync_SettingsFileWithoutAutomaticBackupsEnablesEveryRecoveryPoint()
+    {
+        Directory.CreateDirectory(_root);
+        var path = Path.Combine(_root, "settings.json");
+        await File.WriteAllTextAsync(
+            path,
+            """
+            {
+              "schemaVersion": 1,
+              "customProfiles": [],
+              "characterAliases": [],
+              "showOnlyTaggedCharacters": true
+            }
+            """);
+        var store = new JsonSettingsStore(path);
+
+        var settings = await store.LoadAsync();
+
+        Assert.True(settings.ShowOnlyTaggedCharacters);
+        Assert.True(settings.AutomaticBackups.BeforeCharacterRestore.Enabled);
+        Assert.True(settings.AutomaticBackups.BeforeCharacterMigration.Enabled);
+        Assert.True(settings.AutomaticBackups.BeforeAppearanceRestore.Enabled);
+        Assert.True(settings.AutomaticBackups.BeforePortraitTransfer.Enabled);
+        Assert.Equal(
+            BackupRetentionSetting.DefaultRetentionCount,
+            settings.AutomaticBackups.BeforeCharacterRestore.EffectiveRetentionCount);
     }
 
     [Fact]
