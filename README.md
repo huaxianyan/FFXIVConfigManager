@@ -103,6 +103,7 @@ README 只介绍用户功能。格式、事务、架构和开发说明位于独�
 
 | 文档 | 内容 |
 | --- | --- |
+| [项目交接](docs/STATUS.md) | 当前主线、验证边界、工具链阻塞和下一步 |
 | [开发与发布](docs/development.md) | 技术栈、项目结构、构建、测试和自动发布 |
 | [文件事务](docs/file-transactions.md) | 稳定读取、恢复点、提交和失败回滚 |
 | [角色配置备份格式](docs/snapshot-format.md) | 角色备份归档和 Manifest |
